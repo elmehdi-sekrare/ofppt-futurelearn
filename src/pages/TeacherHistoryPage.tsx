@@ -40,7 +40,17 @@ const TeacherHistoryPage = () => {
     error: studentHistoryError,
   } = useQuery({
     queryKey: ["absences", "student-history", selectedStudent?.id],
-    queryFn: () => api.getStudentAbsenceHistory(selectedStudent!.id),
+    queryFn: () => {
+      const apiWithHistory = api as typeof api & {
+        getStudentAbsenceHistory?: (studentId: number) => Promise<{ data: typeof studentHistoryRes extends { data: infer T } ? T : never }>;
+      };
+
+      if (apiWithHistory.getStudentAbsenceHistory) {
+        return apiWithHistory.getStudentAbsenceHistory(selectedStudent!.id);
+      }
+
+      return api.getAbsences({ student_id: selectedStudent!.id, sort: "latest" });
+    },
     enabled: !!selectedStudent,
   });
 
