@@ -1,73 +1,70 @@
-# Welcome to your Lovable project
+# OFPPT FutureLearn
 
-## Project info
+OFPPT FutureLearn is a role-based attendance and justification management web application for educational use.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- Role-based access (Admin, Teacher, Student)
+- Authentication and protected routes
+- Student, teacher, and group management
+- Absence tracking and history
+- Justification submission and review flow
+- Dashboard views and reporting sections
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- Zustand
+- TanStack Query
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (LTS recommended)
+- npm
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+git clone <your-repository-url>
+cd ofppt-futurelearn
+npm install
+```
 
-Follow these steps:
+### Run in Development
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Build for Production
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+### Run Tests
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+npm run test
+```
 
-## What technologies are used for this project?
+## Backend
 
-This project is built with:
+This frontend is designed to work with a Laravel API backend.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Setup guide: `docs/laravel-backend-guide.md`
+- API base URL used in development: `http://127.0.0.1:8000/api`
 
-## How can I deploy this project?
+## Project Structure (high level)
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `src/pages` — route-level pages
+- `src/components` — reusable UI components
+- `src/stores` — application state stores
+- `src/services` — API integration layer
+- `src/types` — shared TypeScript types
+- `database` — SQL schema/seed references
