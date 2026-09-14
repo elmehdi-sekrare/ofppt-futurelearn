@@ -1,23 +1,31 @@
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-const labelMap: Record<string, string> = {
-  dashboard: "Dashboard",
-  students: "Students",
-  teachers: "Teachers",
-  groups: "Groups",
-  absences: "Absences",
-  justifications: "Justifications",
-  teacher: "Teacher",
-  student: "Student",
-  mark: "Mark Absence",
-  history: "History",
-  account: "Account Settings",
-  help: "Help Center",
-  reports: "Reports",
+const labelKeys: Record<string, string> = {
+  dashboard: "nav.dashboard",
+  students: "nav.students",
+  teachers: "nav.teachers",
+  groups: "nav.groups",
+  rosters: "nav.rosters",
+  absences: "nav.absences",
+  justifications: "nav.justifications",
+  teacher: "layout.roleTeacher",
+  student: "layout.roleStudent",
+  admin: "layout.roleAdmin",
+  mark: "nav.mark",
+  history: "nav.history",
+  roster: "nav.roster",
+  modules: "nav.modules",
+  account: "nav.account",
+  help: "nav.help",
+  reports: "nav.reports",
+  risk: "nav.risk",
+  audit: "nav.audit",
 };
 
 const Breadcrumbs = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const segments = location.pathname.split("/").filter(Boolean);
 
@@ -25,7 +33,8 @@ const Breadcrumbs = () => {
 
   const crumbs = segments.map((seg, i) => {
     const path = "/" + segments.slice(0, i + 1).join("/");
-    const label = labelMap[seg] || seg.charAt(0).toUpperCase() + seg.slice(1);
+    const key = labelKeys[seg];
+    const label = key ? t(key) : seg.charAt(0).toUpperCase() + seg.slice(1);
     const isLast = i === segments.length - 1;
     return { label, path, isLast };
   });

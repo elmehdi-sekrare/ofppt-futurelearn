@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, GraduationCap, Lock, Mail } from "lucide-react";
@@ -6,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useAuthStore } from "@/stores/authStore";
 import { useSuccessNotification } from "@/components/SuccessNotification";
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,14 +36,14 @@ const LoginPage = () => {
         ? "/teacher"
         : "/student";
       showSuccess({
-        title: "Welcome back!",
-        description: `Signed in as ${user.first_name} ${user.last_name}`,
+        title: t("auth.welcomeBack"),
+        description: t("auth.signedInAs", { name: `${user.first_name} ${user.last_name}` }),
         icon: "login",
         accentColor: "#3b82f6",
       });
       setTimeout(() => navigate(dest), 1500);
     } catch (err: any) {
-      toast({ title: "Login failed", description: err.message || "Invalid credentials", variant: "destructive" });
+      toast({ title: t("auth.loginFailed"), description: err.message || t("auth.invalidCredentials"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -65,8 +68,9 @@ const LoginPage = () => {
       <div className="floating-shape w-72 h-72 bg-accent/20 top-1/3 -right-10" style={{ animationDelay: "-5s" }} />
       <div className="floating-shape w-64 h-64 bg-primary/10 bottom-10 left-1/4" style={{ animationDelay: "-10s" }} />
 
-      {/* Theme toggle */}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Theme + language */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-1">
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
 
@@ -87,28 +91,28 @@ const LoginPage = () => {
             <div className="w-16 h-16 mx-auto rounded-2xl btn-glow flex items-center justify-center">
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold font-display gradient-text">OFPPT Smart Attendance</h1>
-            <p className="text-sm text-muted-foreground">Sign in to manage attendance & absences</p>
+            <h1 className="text-2xl font-bold font-display gradient-text">{t("app.name")}</h1>
+            <p className="text-sm text-muted-foreground">{t("auth.signInSubtitle")}</p>
           </motion.div>
 
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Email</label>
+              <label className="text-sm font-medium text-muted-foreground">{t("auth.email")}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
+                  placeholder="votre@email.com"
                   className="pl-10 input-glass"
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Password</label>
+              <label className="text-sm font-medium text-muted-foreground">{t("auth.password")}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -141,14 +145,14 @@ const LoginPage = () => {
                   className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
                 />
               ) : (
-                "Sign In"
+                t("auth.signIn")
               )}
             </Button>
           </form>
 
           {/* Quick fill */}
           <div className="space-y-3">
-            <p className="text-xs text-center text-muted-foreground uppercase tracking-wider">Demo Access</p>
+            <p className="text-xs text-center text-muted-foreground uppercase tracking-wider">{t("auth.demoAccess")}</p>
             <div className="grid grid-cols-3 gap-2">
               {(["admin", "teacher", "student"] as const).map((role) => (
                 <button
@@ -156,7 +160,7 @@ const LoginPage = () => {
                   onClick={() => quickFill(role)}
                   className="text-xs py-2 px-3 rounded-lg bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 capitalize"
                 >
-                  {role}
+                  {t(`auth.${role}`)}
                 </button>
               ))}
             </div>

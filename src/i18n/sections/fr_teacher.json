@@ -1,0 +1,19 @@
+{
+  "teacher": {
+    "overview": "Voici un aper\u00e7u de vos classes et des pr\u00e9sences.",
+    "markAttendance": "Saisir les pr\u00e9sences",
+    "statGroups": "Mes groupes",
+    "statStudents": "Mes \u00e9l\u00e8ves",
+    "statAbsences": "Absences (30 j)",
+    "statLate": "Retards (30 j)",
+    "chartSubtitle": "Vos groupes \u00b7 30 derniers jours",
+    "quickActions": "Actions rapides",
+    "quickSubtitle": "Acc\u00e9der directement \u00e0 une t\u00e2che",
+    "qaMark": "Saisir les absences",
+    "qaMarkDesc": "Enregistrer les pr\u00e9sences du jour",
+    "qaHistory": "Voir l\u2019historique",
+    "qaHistoryDesc": "Consulter les absences pass\u00e9es",
+    "recentTitle": "Absences r\u00e9centes",
+    "recentSubtitle": "Derniers enregistrements de vos groupes"
+  }
+}

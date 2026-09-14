@@ -1,0 +1,30 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "students": "Élèves",
+    "teachers": "Enseignants",
+    "groups": "Groupes",
+    "rosters": "Listes",
+    "absences": "Absences",
+    "justifications": "Justifications",
+    "risk": "Tableau des risques",
+    "reports": "Rapports",
+    "audit": "Journal d’audit",
+    "help": "Aide",
+    "mark": "Saisir une absence",
+    "history": "Historique",
+    "roster": "Mes groupes",
+    "modules": "Mes modules",
+    "myAbsences": "Mes absences",
+    "account": "Paramètres du compte"
+  },
+  "layout": {
+    "collapse": "Réduire",
+    "logout": "Déconnexion",
+    "searchPlaceholder": "Rechercher...",
+    "accountSettings": "Paramètres du compte",
+    "roleAdmin": "Administrateur",
+    "roleTeacher": "Enseignant",
+    "roleStudent": "Élève"
+  }
+}

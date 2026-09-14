@@ -28,10 +28,17 @@ CREATE TABLE `groups` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(50) NOT NULL UNIQUE,
     `level` VARCHAR(50) NOT NULL,
+    `degree` VARCHAR(80) NULL,
+    `study_year` VARCHAR(30) NULL,
+    `academic_year` VARCHAR(20) NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'active',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_groups_level` (`level`)
+    ,INDEX `idx_groups_status` (`status`)
+    ,INDEX `idx_groups_academic_year` (`academic_year`)
+    ,INDEX `idx_groups_degree_year` (`degree`, `study_year`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -55,11 +62,31 @@ CREATE TABLE `students` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+-- 3b. STUDENT GROUP MEMBERSHIPS (a student may belong to shared groups)
+CREATE TABLE `group_students` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `group_id` BIGINT UNSIGNED NOT NULL,
+    `student_id` BIGINT UNSIGNED NOT NULL,
+    `joined_at` TIMESTAMP NULL,
+    `left_at` TIMESTAMP NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT `fk_group_students_group` FOREIGN KEY (`group_id`)
+        REFERENCES `groups`(`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_group_students_student` FOREIGN KEY (`student_id`)
+        REFERENCES `students`(`id`) ON DELETE CASCADE,
+
+    UNIQUE KEY `uk_group_student` (`group_id`, `student_id`),
+    INDEX `idx_group_students_student` (`student_id`, `left_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 -- 4. TEACHERS (extends users)
+-- Subjects/modules are managed by teachers themselves via the modules table.
 CREATE TABLE `teachers` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `user_id` BIGINT UNSIGNED NOT NULL UNIQUE,
-    `subject` VARCHAR(100) NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -83,20 +110,38 @@ CREATE TABLE `teacher_groups` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
--- 6. ABSENCES
+CREATE TABLE `modules` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `teacher_id` BIGINT UNSIGNED NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT `fk_modules_teacher` FOREIGN KEY (`teacher_id`)
+        REFERENCES `teachers`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_module_teacher_name` (`teacher_id`, `name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. ABSENCES
 CREATE TABLE `absences` (
     `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `student_id` BIGINT UNSIGNED NOT NULL,
     `teacher_id` BIGINT UNSIGNED NOT NULL,
+    `module_id` BIGINT UNSIGNED NULL,
     `group_id` BIGINT UNSIGNED NOT NULL,
     `date` DATE NOT NULL,
     `start_time` TIME NOT NULL,
     `end_time` TIME NOT NULL,
-    `hours` DECIMAL(4,2) GENERATED ALWAYS AS
-        (TIMESTAMPDIFF(MINUTE, CONCAT(date,' ',start_time), CONCAT(date,' ',end_time)) / 60) STORED,
+    `hours` DECIMAL(4,2) NULL,
     `subject` VARCHAR(100) NOT NULL,
     `notes` TEXT NULL,
-    `status` ENUM('pending', 'justified', 'unjustified') NOT NULL DEFAULT 'pending',
+    `status` ENUM('pending', 'justified', 'unjustified', 'voided') NOT NULL DEFAULT 'pending',
+    `attendance_status` VARCHAR(20) NOT NULL DEFAULT 'absent',
+    `late_minutes` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    `resolution_source` VARCHAR(20) NULL,
+    `resolution_note` TEXT NULL,
+    `resolved_by` BIGINT UNSIGNED NULL,
+    `resolved_at` TIMESTAMP NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -104,14 +149,20 @@ CREATE TABLE `absences` (
         REFERENCES `students`(`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_absences_teacher` FOREIGN KEY (`teacher_id`)
         REFERENCES `teachers`(`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_absences_module` FOREIGN KEY (`module_id`)
+        REFERENCES `modules`(`id`) ON DELETE SET NULL,
     CONSTRAINT `fk_absences_group` FOREIGN KEY (`group_id`)
         REFERENCES `groups`(`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_absences_resolved_by` FOREIGN KEY (`resolved_by`)
+        REFERENCES `users`(`id`) ON DELETE SET NULL,
 
     INDEX `idx_absences_student` (`student_id`),
     INDEX `idx_absences_teacher` (`teacher_id`),
     INDEX `idx_absences_group` (`group_id`),
     INDEX `idx_absences_date` (`date`),
     INDEX `idx_absences_status` (`status`),
+    INDEX `idx_absences_attendance_date` (`attendance_status`, `date`),
+    INDEX `idx_absences_attendance_status` (`attendance_status`, `status`),
     INDEX `idx_absences_student_date` (`student_id`, `date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -126,13 +177,13 @@ CREATE TABLE `justifications` (
     `file_type` ENUM('pdf', 'image') NOT NULL,
     `file_size` INT UNSIGNED NULL,
     `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    CONSTRAINT `fk_absences_module` FOREIGN KEY (`module_id`)
+        REFERENCES `modules`(`id`) ON DELETE SET NULL,
+    INDEX `idx_absences_module` (`module_id`),
     `reviewed_by` BIGINT UNSIGNED NULL,
     `review_note` TEXT NULL,
     `reviewed_at` TIMESTAMP NULL,
     `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
     CONSTRAINT `fk_justifications_absence` FOREIGN KEY (`absence_id`)
         REFERENCES `absences`(`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_justifications_reviewer` FOREIGN KEY (`reviewed_by`)
@@ -141,10 +192,10 @@ CREATE TABLE `justifications` (
     INDEX `idx_justifications_absence` (`absence_id`),
     INDEX `idx_justifications_status` (`status`),
     INDEX `idx_justifications_reviewer` (`reviewed_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SET FOREIGN_KEY_CHECKS = 1;
-
+    COALESCE(SUM(CASE WHEN a.attendance_status = 'absent' AND a.status != 'voided' THEN a.hours ELSE 0 END), 0) AS total_absence_hours,
+    COALESCE(SUM(CASE WHEN a.attendance_status = 'absent' AND a.status = 'justified' THEN a.hours ELSE 0 END), 0) AS justified_hours,
+    COALESCE(SUM(CASE WHEN a.attendance_status = 'absent' AND a.status = 'unjustified' THEN a.hours ELSE 0 END), 0) AS unjustified_hours,
+    COALESCE(SUM(CASE WHEN a.attendance_status = 'absent' AND a.status = 'pending' THEN a.hours ELSE 0 END), 0) AS pending_hours
 
 -- ============================================
 -- VIEW: Student total absence hours

@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSuccessNotification } from "@/components/SuccessNotification";
+import { StyledSelect } from "@/components/ui/styled-select";
 import type { Justification } from "@/types/api";
 
 const statusConfig = {
@@ -121,12 +122,15 @@ const JustificationsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm text-muted-foreground">Select Absence</label>
-                  <select value={selectedAbsence || ""} onChange={(e) => setSelectedAbsence(Number(e.target.value))} className="w-full h-10 rounded-md px-3 bg-secondary/50 border border-white/[0.08] text-sm text-foreground">
-                    <option value="">Choose an absence...</option>
-                    {unjustifiedAbsences.map((a) => (
-                      <option key={a.id} value={a.id}>{a.date} — {a.subject} ({a.hours}h)</option>
-                    ))}
-                  </select>
+                  <StyledSelect
+                    value={selectedAbsence ? String(selectedAbsence) : ""}
+                    onValueChange={(v) => setSelectedAbsence(v ? Number(v) : null)}
+                    placeholder="Choose an absence..."
+                    options={unjustifiedAbsences.map((a) => ({
+                      label: `${a.date} — ${a.subject} (${a.hours}h)`,
+                      value: String(a.id),
+                    }))}
+                  />
                 </div>
 
                 <div className="space-y-1.5">

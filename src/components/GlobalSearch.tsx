@@ -4,10 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, GraduationCap, Users, BookOpen, Command, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
 
 const GlobalSearch = () => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +34,7 @@ const GlobalSearch = () => {
 
   const students = studentsRes?.data ?? [];
   const teachers = teachersRes?.data ?? [];
-  const groups = groupsRes?.data ?? [];
+  const groups = (groupsRes?.data ?? []).filter((group) => (group.status ?? "active") === "active");
 
   // Keyboard shortcut Ctrl+K
   useEffect(() => {
@@ -59,7 +61,7 @@ const GlobalSearch = () => {
     const q = query.toLowerCase();
     return {
       students: students.filter((s) => `${s.first_name} ${s.last_name} ${s.cne} ${s.email}`.toLowerCase().includes(q)).slice(0, 5),
-      teachers: teachers.filter((t) => `${t.first_name} ${t.last_name} ${t.subject} ${t.email}`.toLowerCase().includes(q)).slice(0, 5),
+      teachers: teachers.filter((t) => `${t.first_name} ${t.last_name} ${(t.subjects ?? []).join(" ")} ${t.email}`.toLowerCase().includes(q)).slice(0, 5),
       groups: groups.filter((g) => `${g.name} ${g.level}`.toLowerCase().includes(q)).slice(0, 5),
     };
   }, [query, students, teachers, groups]);
@@ -166,7 +168,7 @@ const GlobalSearch = () => {
                     <Users className="w-4 h-4 text-blue-400" />
                     <div>
                       <p className="font-medium">{t.first_name} {t.last_name}</p>
-                      <p className="text-xs text-muted-foreground">{t.subject}</p>
+                      <p className="text-xs text-muted-foreground">{(t.subjects ?? []).join(", ") || "No subjects created"}</p>
                     </div>
                   </button>
                 ))}

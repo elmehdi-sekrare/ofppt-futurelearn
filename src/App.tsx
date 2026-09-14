@@ -13,20 +13,37 @@ import StudentDashboard from "./pages/StudentDashboard";
 import StudentsPage from "./pages/StudentsPage";
 import TeachersPage from "./pages/TeachersPage";
 import GroupsPage from "./pages/GroupsPage";
+import AdminRosterPage from "./pages/AdminRosterPage";
 import AdminAbsencesPage from "./pages/AdminAbsencesPage";
 import MarkAbsencePage from "./pages/MarkAbsencePage";
 import JustificationsPage from "./pages/JustificationsPage";
 import AdminJustificationsPage from "./pages/AdminJustificationsPage";
 import StudentAbsencesPage from "./pages/StudentAbsencesPage";
 import TeacherHistoryPage from "./pages/TeacherHistoryPage";
+import TeacherRosterPage from "./pages/TeacherRosterPage";
+import TeacherModulesPage from "./pages/TeacherModulesPage";
 import DashboardLayout from "./components/DashboardLayout";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import ReportsPage from "./pages/ReportsPage";
+import RiskDashboardPage from "./pages/RiskDashboardPage";
+import AuditLogPage from "./pages/AuditLogPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 import NotFound from "./pages/NotFound";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Keep data fresh for 1 min so navigating back doesn't re-flash skeletons
+      staleTime: 60_000,
+      // Keep cached data for 5 min after a query is unused
+      gcTime: 5 * 60_000,
+      // Avoid jarring refetch-on-focus loops during a live demo
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const ProtectedRoute = ({ children, role }: { children: React.ReactNode; role: string }) => {
   const { isAuthenticated, isLoading, user } = useAuthStore();
@@ -100,13 +117,14 @@ const ComingSoon = () => (
 
 const App = () => {
   const { theme } = useThemeStore();
+  const routerBasename = import.meta.env.BASE_URL === "/" ? undefined : import.meta.env.BASE_URL.replace(/\/$/, "");
   return (
   <div className={`${theme === "light" ? "light" : ""} bg-background text-foreground min-h-screen`}>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename={routerBasename}>
         <AuthInitializer>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
@@ -131,6 +149,9 @@ const App = () => {
             <Route path="/dashboard/groups" element={
               <ProtectedRoute role="admin"><DashboardLayout role="admin"><GroupsPage /></DashboardLayout></ProtectedRoute>
             } />
+            <Route path="/dashboard/rosters" element={
+              <ProtectedRoute role="admin"><DashboardLayout role="admin"><AdminRosterPage /></DashboardLayout></ProtectedRoute>
+            } />
             <Route path="/dashboard/absences" element={
               <ProtectedRoute role="admin"><DashboardLayout role="admin"><AdminAbsencesPage /></DashboardLayout></ProtectedRoute>
             } />
@@ -139,6 +160,12 @@ const App = () => {
             } />
             <Route path="/dashboard/reports" element={
               <ProtectedRoute role="admin"><DashboardLayout role="admin"><ReportsPage /></DashboardLayout></ProtectedRoute>
+            } />
+            <Route path="/dashboard/risk" element={
+              <ProtectedRoute role="admin"><DashboardLayout role="admin"><RiskDashboardPage /></DashboardLayout></ProtectedRoute>
+            } />
+            <Route path="/dashboard/audit" element={
+              <ProtectedRoute role="admin"><DashboardLayout role="admin"><AuditLogPage /></DashboardLayout></ProtectedRoute>
             } />
             <Route path="/dashboard/help" element={
               <ProtectedRoute role="admin"><DashboardLayout role="admin"><HelpCenterPage /></DashboardLayout></ProtectedRoute>
@@ -156,6 +183,12 @@ const App = () => {
             } />
             <Route path="/teacher/history" element={
               <ProtectedRoute role="teacher"><DashboardLayout role="teacher"><TeacherHistoryPage /></DashboardLayout></ProtectedRoute>
+            } />
+            <Route path="/teacher/roster" element={
+              <ProtectedRoute role="teacher"><DashboardLayout role="teacher"><TeacherRosterPage /></DashboardLayout></ProtectedRoute>
+            } />
+            <Route path="/teacher/modules" element={
+              <ProtectedRoute role="teacher"><DashboardLayout role="teacher"><TeacherModulesPage /></DashboardLayout></ProtectedRoute>
             } />
             <Route path="/teacher/help" element={
               <ProtectedRoute role="teacher"><DashboardLayout role="teacher"><HelpCenterPage /></DashboardLayout></ProtectedRoute>

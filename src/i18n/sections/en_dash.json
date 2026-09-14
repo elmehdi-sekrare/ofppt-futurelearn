@@ -1,0 +1,31 @@
+{
+  "dashboard": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "adminSubtitle": "Here is what is happening with attendance today",
+    "roleAdmin": "Administrator",
+    "roleTeacher": "Teacher",
+    "roleStudent": "Student",
+    "statStudents": "Total Students",
+    "statTeachers": "Total Teachers",
+    "statAbsenceRate": "Absence Rate",
+    "statPending": "Pending Reviews",
+    "statHighRisk": "High Risk",
+    "statLate": "Late Arrivals",
+    "chartTitle": "Absence Trend",
+    "chartSubtitle": "Absence hours - last 30 days",
+    "legendAbsence": "Absence hours",
+    "heatmapTitle": "Weekly Heatmap",
+    "heatmapSubtitle": "Absence intensity by day",
+    "sysInfo": "System Info",
+    "platform": "Platform",
+    "academicYear": "Academic Year",
+    "semester": "Semester",
+    "server": "Server",
+    "online": "Online",
+    "recentAbsences": "Recent Absences",
+    "recentSubtitle": "Latest absence records",
+    "today": "Today"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "student": {
+    "subtitle": "Your attendance summary at a glance",
+    "danger": "Danger Zone!",
+    "dangerText": "You have reached {{pct}}% of the maximum allowed ({{hours}}h / {{max}}h). Contact administration immediately.",
+    "warning": "Warning",
+    "warningText": "You are at {{pct}}% of the maximum allowed ({{hours}}h / {{max}}h). Watch your absences.",
+    "perfect": "Great work!",
+    "perfectText": "No absence recorded. Keep it up!",
+    "statHours": "Absence Hours",
+    "statPending": "Pending Reviews",
+    "statUnjustified": "Unjustified",
+    "gaugeTitle": "Attendance Rate",
+    "gaugeHint": "Keep it above 80% to stay in good standing",
+    "limitTitle": "Absence Limit Tracker"
+  }
+}

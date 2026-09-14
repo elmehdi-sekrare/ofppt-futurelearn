@@ -9,17 +9,26 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSuccessNotification } from "@/components/SuccessNotification";
+import { StyledSelect } from "@/components/ui/styled-select";
 import type { Group, Student } from "@/types/api";
 
-const levels = ["1ère Année", "2ème Année", "3ème Année"];
+const degreeOptions = ["Spécialisation", "Qualification", "Technicien", "Technicien Spécialisé"];
+const studyYearOptions = ["1ère année", "2ème année", "3ème année"];
+const currentYear = new Date().getFullYear();
+const academicYearOptions = Array.from({ length: 7 }, (_, index) => {
+  const start = currentYear - 2 + index;
+  return `${start}-${start + 1}`;
+});
 
 const GroupsPage = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "archived">("active");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Group | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const { toast } = useToast();
@@ -29,7 +38,7 @@ const GroupsPage = () => {
     setPortalRoot(document.body);
   }, []);
 
-  const [form, setForm] = useState({ name: "", level: levels[0] });
+  const [form, setForm] = useState({ name: "", degree: "", studyYear: "", academicYear: "", status: "active" as "active" | "archived" });
 
   const { data: groupsRes, isLoading } = useQuery({
     queryKey: ["groups"],
@@ -37,6 +46,7 @@ const GroupsPage = () => {
   });
 
   const groups = groupsRes?.data ?? [];
+  const levels = Array.from(new Set(groups.map((group) => group.degree ?? group.level))).filter(Boolean);
 
   // Fetch students for expanded group
   const { data: groupStudentsRes } = useQuery({
@@ -71,8 +81,8 @@ const GroupsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
       setDeleteConfirm(null);
       showSuccess({
-        title: "Group Deleted",
-        description: "Group removed from the system",
+        title: "Group Archived",
+        description: "Group archived while attendance history is preserved",
         icon: "trash",
         accentColor: "#ef4444",
       });
@@ -80,23 +90,49 @@ const GroupsPage = () => {
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
+  const bulkStatusMutation = useMutation({
+    mutationFn: (action: "archive" | "restore" | "delete") => api.updateGroupsStatus(selectedIds, action),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      setSelectedIds([]);
+      showSuccess({ title: "Groups Updated", description: `${response.data.archived ?? response.data.restored ?? response.data.deleted ?? 0} groups updated`, icon: "check", accentColor: "#10b981" });
+    },
+    onError: (err: Error) => toast({ title: "Group action failed", description: err.message, variant: "destructive" }),
+  });
+
   const filtered = useMemo(() => {
     return groups.filter((g) => {
       const matchSearch = g.name.toLowerCase().includes(search.toLowerCase());
       const matchLevel = !levelFilter || g.level === levelFilter;
-      return matchSearch && matchLevel;
+      const matchStatus = (g.status ?? "active") === statusFilter;
+      return matchSearch && matchLevel && matchStatus;
     });
-  }, [groups, search, levelFilter]);
+  }, [groups, search, levelFilter, statusFilter]);
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((group) => selectedIds.includes(group.id));
+  const toggleGroup = (id: number) => setSelectedIds((current) => current.includes(id) ? current.filter((selectedId) => selectedId !== id) : [...current, id]);
+  const toggleFiltered = () => setSelectedIds((current) => allFilteredSelected
+    ? current.filter((id) => !filtered.some((group) => group.id === id))
+    : Array.from(new Set([...current, ...filtered.map((group) => group.id)])));
+  const runGroupAction = (action: "archive" | "restore" | "delete") => {
+    const message = action === "archive"
+      ? `Archive ${selectedIds.length} selected groups? Attendance history will be preserved.`
+      : action === "restore"
+        ? `Restore ${selectedIds.length} selected groups?`
+        : `Permanently delete ${selectedIds.length} selected groups? This cannot be undone.`;
+    if (!selectedIds.length || !window.confirm(message)) return;
+    bulkStatusMutation.mutate(action);
+  };
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: "", level: levels[0] });
+    setForm({ name: "", degree: "", studyYear: "", academicYear: "", status: "active" });
     setDialogOpen(true);
   };
 
   const openEdit = (g: Group) => {
     setEditing(g);
-    setForm({ name: g.name, level: g.level });
+    setForm({ name: g.name, degree: g.degree ?? g.level, studyYear: g.study_year ?? "", academicYear: g.academic_year ?? "", status: g.status ?? "active" });
     setDialogOpen(true);
   };
 
@@ -105,7 +141,11 @@ const GroupsPage = () => {
       toast({ title: "Validation Error", description: "Group name is required", variant: "destructive" });
       return;
     }
-    saveMutation.mutate({ id: editing?.id, payload: { name: form.name, level: form.level } });
+    if (!form.degree || !form.studyYear || !form.academicYear) {
+      toast({ title: "Validation Error", description: "Degree, study year, and academic year are required", variant: "destructive" });
+      return;
+    }
+    saveMutation.mutate({ id: editing?.id, payload: { name: form.name, level: form.degree, degree: form.degree, study_year: form.studyYear, academic_year: form.academicYear, status: form.status } });
   };
 
   if (isLoading) {
@@ -126,8 +166,15 @@ const GroupsPage = () => {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold">Groups</h1>
-          <p className="text-muted-foreground text-sm mt-1">{groups.length} groups registered</p>
+          <p className="text-muted-foreground text-sm mt-1">{groups.filter((group) => (group.status ?? "active") === "active").length} active groups · {groups.length} total records</p>
         </div>
+        {selectedIds.length > 0 && statusFilter === "active" && <Button variant="destructive" onClick={() => runGroupAction("archive")} disabled={bulkStatusMutation.isPending} className="gap-2">
+          <Trash2 className="w-4 h-4" /> {bulkStatusMutation.isPending ? "Archiving..." : `Archive ${selectedIds.length}`}
+        </Button>}
+        {selectedIds.length > 0 && statusFilter === "archived" && <>
+          <Button variant="outline" onClick={() => runGroupAction("restore")} disabled={bulkStatusMutation.isPending}>Restore {selectedIds.length}</Button>
+          <Button variant="destructive" onClick={() => runGroupAction("delete")} disabled={bulkStatusMutation.isPending}>Delete permanently</Button>
+        </>}
         <Button onClick={openAdd} className="btn-glow text-primary-foreground border-0 gap-2">
           <Plus className="w-4 h-4" /> Add Group
         </Button>
@@ -138,11 +185,19 @@ const GroupsPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search groups..." className="pl-10 input-glass" />
         </div>
-        <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} className="h-10 px-4 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground appearance-none cursor-pointer min-w-[150px]">
-          <option value="">All Levels</option>
-          {levels.map((l) => <option key={l} value={l}>{l}</option>)}
-        </select>
+        <StyledSelect
+          value={levelFilter}
+          onValueChange={setLevelFilter}
+          className="min-w-[150px]"
+          options={[{ label: "All Levels", value: "" }, ...levels.map((l) => ({ label: l, value: l }))]}
+        />
+        <StyledSelect value={statusFilter} onValueChange={(value) => { setStatusFilter(value as "active" | "archived"); setSelectedIds([]); }} className="min-w-[150px]" options={[{ label: "Active Groups", value: "active" }, { label: "Archived Groups", value: "archived" }]} />
       </div>
+
+      {filtered.length > 0 && <label className="flex items-center gap-2 text-sm text-muted-foreground">
+        <input type="checkbox" aria-label="Select all visible groups" checked={allFilteredSelected} onChange={toggleFiltered} />
+        Select all visible groups
+      </label>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AnimatePresence>
@@ -152,12 +207,14 @@ const GroupsPage = () => {
               <motion.div key={g.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ delay: i * 0.05 }} className="glass-panel p-5 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
+                    <input type="checkbox" aria-label={`Select ${g.name}`} checked={selectedIds.includes(g.id)} onChange={() => toggleGroup(g.id)} />
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                       <h3 className="font-display font-semibold">{g.name}</h3>
-                      <p className="text-xs text-muted-foreground">{g.level}</p>
+                      <p className="text-xs text-muted-foreground">{g.degree ?? g.level}{g.study_year ? ` · ${g.study_year}` : ""}{g.academic_year ? ` · ${g.academic_year}` : ""}</p>
+                                          {g.status === "archived" && <span className="text-[10px] uppercase tracking-wide text-amber-500">Archived</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -169,7 +226,7 @@ const GroupsPage = () => {
                     ) : (
                       <>
                         <button onClick={() => openEdit(g)} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => setDeleteConfirm(g.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                        {g.status !== "archived" && <button onClick={() => setDeleteConfirm(g.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Archive group"><Trash2 className="w-3.5 h-3.5" /></button>}
                       </>
                     )}
                   </div>
@@ -235,10 +292,20 @@ const GroupsPage = () => {
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. DEV-301" className="input-glass" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm text-muted-foreground">Level</label>
-                  <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="w-full h-10 rounded-md px-3 bg-secondary/50 border border-white/[0.08] text-sm text-foreground">
-                    {levels.map((l) => <option key={l} value={l}>{l}</option>)}
-                  </select>
+                  <label className="text-sm text-muted-foreground">Degree / Diploma</label>
+                  <StyledSelect value={form.degree} onValueChange={(value) => setForm({ ...form, degree: value })} placeholder="Select a diploma" options={degreeOptions.map((degree) => ({ label: degree, value: degree }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm text-muted-foreground">Study year</label>
+                  <StyledSelect value={form.studyYear} onValueChange={(value) => setForm({ ...form, studyYear: value })} placeholder="Select 1st, 2nd, or 3rd year" options={studyYearOptions.map((year) => ({ label: year, value: year }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm text-muted-foreground">Academic year</label>
+                  <StyledSelect value={form.academicYear} onValueChange={(value) => setForm({ ...form, academicYear: value })} placeholder="Select an academic year" options={academicYearOptions.map((year) => ({ label: year, value: year }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm text-muted-foreground">Group status</label>
+                  <StyledSelect value={form.status} onValueChange={(v) => setForm({ ...form, status: v as "active" | "archived" })} options={[{ label: "Active", value: "active" }, { label: "Archived", value: "archived" }]} />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">

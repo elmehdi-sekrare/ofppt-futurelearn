@@ -1,0 +1,30 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "teachers": "Teachers",
+    "groups": "Groups",
+    "rosters": "Rosters",
+    "absences": "Absences",
+    "justifications": "Justifications",
+    "risk": "Risk Dashboard",
+    "reports": "Reports",
+    "audit": "Audit Trail",
+    "help": "Help",
+    "mark": "Mark Absence",
+    "history": "History",
+    "roster": "My Groups",
+    "modules": "My Modules",
+    "myAbsences": "My Absences",
+    "account": "Account Settings"
+  },
+  "layout": {
+    "collapse": "Collapse",
+    "logout": "Logout",
+    "searchPlaceholder": "Search...",
+    "accountSettings": "Account Settings",
+    "roleAdmin": "Administrator",
+    "roleTeacher": "Teacher",
+    "roleStudent": "Student"
+  }
+}

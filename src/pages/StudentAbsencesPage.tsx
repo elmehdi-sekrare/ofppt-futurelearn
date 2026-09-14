@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StyledSelect } from "@/components/ui/styled-select";
 
 const statusConfig = {
   pending: { icon: Clock, label: "Pending", className: "bg-warning/10 text-warning" },
   justified: { icon: CheckCircle, label: "Justified", className: "bg-success/10 text-success" },
   unjustified: { icon: XCircle, label: "Unjustified", className: "bg-destructive/10 text-destructive" },
+  voided: { icon: XCircle, label: "Removed", className: "bg-muted text-muted-foreground" },
 };
 
 const StudentAbsencesPage = () => {
@@ -21,7 +23,7 @@ const StudentAbsencesPage = () => {
     queryFn: () => api.getAbsences(),
   });
 
-  const absences = absencesRes?.data ?? [];
+  const absences = (absencesRes?.data ?? []).filter((absence) => absence.status !== "voided");
 
   const filtered = useMemo(() => {
     return absences.filter((a) => {
@@ -123,31 +125,38 @@ const StudentAbsencesPage = () => {
       </motion.div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="pl-10 pr-4 h-10 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground appearance-none cursor-pointer min-w-[140px]">
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="justified">Justified</option>
-            <option value="unjustified">Unjustified</option>
-          </select>
-        </div>
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="pl-10 pr-4 h-10 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground appearance-none cursor-pointer min-w-[160px]">
-            <option value="">All Months</option>
-            {months.map((m) => (
-              <option key={m} value={m}>{new Date(m + "-01").toLocaleDateString("en", { year: "numeric", month: "long" })}</option>
-            ))}
-          </select>
-        </div>
+        <StyledSelect
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          icon={<Filter className="w-4 h-4" />}
+          className="min-w-[140px]"
+          options={[
+            { label: "All Status", value: "" },
+            { label: "Pending", value: "pending" },
+            { label: "Justified", value: "justified" },
+            { label: "Unjustified", value: "unjustified" },
+          ]}
+        />
+        <StyledSelect
+          value={monthFilter}
+          onValueChange={setMonthFilter}
+          icon={<Calendar className="w-4 h-4" />}
+          className="min-w-[160px]"
+          options={[
+            { label: "All Months", value: "" },
+            ...months.map((m) => ({
+              label: new Date(m + "-01").toLocaleDateString("en", { year: "numeric", month: "long" }),
+              value: m,
+            })),
+          ]}
+        />
       </div>
 
       <div className="space-y-3">
         {filtered.map((a, i) => {
           const StatusIcon = statusConfig[a.status].icon;
           return (
-            <motion.div key={a.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="glass-panel-hover p-4 flex items-start gap-4">
+            <motion.div key={a.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={`glass-panel-hover p-4 flex items-start gap-4 ${a.status === "justified" ? "opacity-70" : ""}`}>
               <div className="flex flex-col items-center pt-1 shrink-0">
                 <div className={`w-3 h-3 rounded-full ${a.status === "justified" ? "bg-success" : a.status === "unjustified" ? "bg-destructive" : "bg-warning"}`} />
                 {i < filtered.length - 1 && <div className="w-px h-8 bg-border mt-1" />}
@@ -168,6 +177,11 @@ const StudentAbsencesPage = () => {
                   <span>{a.teacher_name}</span>
                 </div>
                 {a.notes && <p className="text-xs text-muted-foreground mt-1.5 italic">"{a.notes}"</p>}
+                {a.status === "justified" && (
+                  <p className="text-xs text-success mt-1.5 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> Excused — this absence no longer counts against you.
+                  </p>
+                )}
               </div>
               <div className="shrink-0 text-right">
                 <span className="text-lg font-display font-bold">{a.hours}h</span>

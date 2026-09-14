@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StyledSelect } from "@/components/ui/styled-select";
 
 type ReportType = "attendance" | "absences" | "students";
 
@@ -26,8 +27,8 @@ const ReportsPage = () => {
   });
 
   const { data: absencesRes, isLoading: loadingAbsences } = useQuery({
-    queryKey: ["absences", { group: groupFilter }],
-    queryFn: () => api.getAbsences({ group: groupFilter }),
+    queryKey: ["absences", { group: groupFilter, reportType }],
+    queryFn: () => api.getAbsences({ group: groupFilter, attendance_status: reportType === "absences" ? "absent" : undefined }),
   });
 
   const groups = groupsRes?.data ?? [];
@@ -45,6 +46,12 @@ const ReportsPage = () => {
     return true;
   });
 
+  const attendanceCounts = filteredAbsences.reduce((counts, record) => {
+    counts[record.attendance_status] += 1;
+    return counts;
+  }, { present: 0, late: 0, absent: 0, excused: 0 });
+  const absenceRecords = filteredAbsences.filter((record) => record.attendance_status === "absent");
+
   const generatePrintableHTML = (): string => {
     const now = new Date().toLocaleString("fr-FR");
     const filterInfo = [
@@ -60,20 +67,21 @@ const ReportsPage = () => {
         <table>
           <thead><tr>
             <th>#</th><th>Student</th><th>Group</th><th>Date</th>
-            <th>Time</th><th>Hours</th><th>Subject</th><th>Status</th>
+            <th>Time</th><th>Attendance</th><th>Hours</th><th>Subject</th><th>Justification</th>
           </tr></thead>
           <tbody>${filteredAbsences.map((a, i) => `
             <tr>
               <td>${i + 1}</td><td>${a.student_name}</td><td>${a.group_name}</td>
               <td>${a.date}</td><td>${a.start_time}-${a.end_time}</td>
-              <td>${a.hours}h</td><td>${a.subject}</td>
+              <td>${a.attendance_status}${a.attendance_status === "late" ? ` (${a.late_minutes} min)` : ""}</td><td>${a.hours}h</td><td>${a.subject}</td>
               <td><span class="status-${a.status}">${a.status}</span></td>
             </tr>`).join("")}
           </tbody>
         </table>
         <div class="summary">
-          <p><strong>Total Records:</strong> ${filteredAbsences.length}</p>
-          <p><strong>Total Hours:</strong> ${filteredAbsences.reduce((s, a) => s + a.hours, 0)}h</p>
+          <p><strong>Total attendance records:</strong> ${filteredAbsences.length}</p>
+          <p><strong>Absent:</strong> ${attendanceCounts.absent} · <strong>Late:</strong> ${attendanceCounts.late} · <strong>Excused:</strong> ${attendanceCounts.excused}</p>
+          <p><strong>Total absence hours:</strong> ${absenceRecords.reduce((s, a) => s + a.hours, 0)}h</p>
         </div>`;
     } else if (reportType === "students") {
       tableHTML = `
@@ -95,8 +103,8 @@ const ReportsPage = () => {
         </div>`;
     } else {
       const totalStudents = filteredStudents.length;
-      const totalAbsences = filteredAbsences.length;
-      const totalHours = filteredAbsences.reduce((s, a) => s + a.hours, 0);
+      const totalAbsences = attendanceCounts.absent;
+      const totalHours = absenceRecords.reduce((s, a) => s + a.hours, 0);
       const justified = filteredAbsences.filter((a) => a.status === "justified").length;
       const unjustified = filteredAbsences.filter((a) => a.status === "unjustified").length;
       const pending = filteredAbsences.filter((a) => a.status === "pending").length;
@@ -105,6 +113,8 @@ const ReportsPage = () => {
         <div class="stats-grid">
           <div class="stat-box"><div class="stat-value">${totalStudents}</div><div class="stat-label">Students</div></div>
           <div class="stat-box"><div class="stat-value">${totalAbsences}</div><div class="stat-label">Absence Records</div></div>
+          <div class="stat-box"><div class="stat-value">${attendanceCounts.late}</div><div class="stat-label">Late Arrivals</div></div>
+          <div class="stat-box"><div class="stat-value">${attendanceCounts.excused}</div><div class="stat-label">Excused</div></div>
           <div class="stat-box"><div class="stat-value">${totalHours}h</div><div class="stat-label">Total Hours</div></div>
           <div class="stat-box"><div class="stat-value">${justified}</div><div class="stat-label">Justified</div></div>
           <div class="stat-box"><div class="stat-value">${unjustified}</div><div class="stat-label">Unjustified</div></div>
@@ -230,14 +240,11 @@ const ReportsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-xs text-muted-foreground block mb-1.5">Group</label>
-            <select
+            <StyledSelect
               value={groupFilter}
-              onChange={(e) => setGroupFilter(e.target.value)}
-              className="w-full h-10 px-3 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground"
-            >
-              <option value="">All Groups</option>
-              {groups.map((g) => <option key={g.id} value={g.name}>{g.name}</option>)}
-            </select>
+              onValueChange={setGroupFilter}
+              options={[{ label: "All Groups", value: "" }, ...groups.map((g) => ({ label: g.name, value: g.name }))]}
+            />
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1.5">From Date</label>
@@ -267,7 +274,7 @@ const ReportsPage = () => {
             <h3 className="font-display font-semibold text-sm">Report Preview</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {reportType === "absences"
-                ? `${filteredAbsences.length} absence records`
+                ? `${filteredAbsences.length} attendance records`
                 : reportType === "students"
                 ? `${filteredStudents.length} students`
                 : `Summary overview`}
@@ -296,8 +303,9 @@ const ReportsPage = () => {
                     <th className="text-left pb-2 font-medium">Student</th>
                     <th className="text-left pb-2 font-medium">Group</th>
                     <th className="text-left pb-2 font-medium">Date</th>
+                    <th className="text-left pb-2 font-medium">Attendance</th>
                     <th className="text-left pb-2 font-medium">Hours</th>
-                    <th className="text-left pb-2 font-medium">Status</th>
+                    <th className="text-left pb-2 font-medium">Justification</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,6 +315,7 @@ const ReportsPage = () => {
                       <td className="py-2">{a.student_name}</td>
                       <td className="py-2">{a.group_name}</td>
                       <td className="py-2">{a.date}</td>
+                      <td className="py-2 capitalize">{a.attendance_status}{a.attendance_status === "late" ? ` (${a.late_minutes}m)` : ""}</td>
                       <td className="py-2">{a.hours}h</td>
                       <td className="py-2">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
@@ -348,8 +357,10 @@ const ReportsPage = () => {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: "Students", value: filteredStudents.length },
-                  { label: "Absences", value: filteredAbsences.length },
-                  { label: "Total Hours", value: `${filteredAbsences.reduce((s, a) => s + a.hours, 0)}h` },
+                  { label: "Absent", value: attendanceCounts.absent },
+                  { label: "Late", value: attendanceCounts.late },
+                  { label: "Excused", value: attendanceCounts.excused },
+                  { label: "Absence Hours", value: `${absenceRecords.reduce((s, a) => s + a.hours, 0)}h` },
                   { label: "Justified", value: filteredAbsences.filter((a) => a.status === "justified").length },
                   { label: "Unjustified", value: filteredAbsences.filter((a) => a.status === "unjustified").length },
                   { label: "Pending", value: filteredAbsences.filter((a) => a.status === "pending").length },

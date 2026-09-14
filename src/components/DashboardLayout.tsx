@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList,
   FileCheck, LogOut, ChevronLeft, Menu, UserCircle, Settings, Search,
-  Printer, HelpCircle
+  Printer, HelpCircle, ShieldAlert, History, FolderPlus, BookOpenCheck
 } from "lucide-react";
 import Breadcrumbs from "./Breadcrumbs";
 import ScrollToTop from "./ScrollToTop";
@@ -16,6 +16,8 @@ import GlobalSearch from "./GlobalSearch";
 import KeyboardShortcuts from "./KeyboardShortcuts";
 import QuickActions from "./QuickActions";
 import ThemeToggle from "./ThemeToggle";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/stores/authStore";
 import {
   DropdownMenu,
@@ -27,34 +29,39 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface NavItem {
-  label: string;
+  key: string;
   path: string;
   icon: ReactNode;
 }
 
 const adminNav: NavItem[] = [
-  { label: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: "Students", path: "/dashboard/students", icon: <GraduationCap className="w-5 h-5" /> },
-  { label: "Teachers", path: "/dashboard/teachers", icon: <Users className="w-5 h-5" /> },
-  { label: "Groups", path: "/dashboard/groups", icon: <BookOpen className="w-5 h-5" /> },
-  { label: "Absences", path: "/dashboard/absences", icon: <ClipboardList className="w-5 h-5" /> },
-  { label: "Justifications", path: "/dashboard/justifications", icon: <FileCheck className="w-5 h-5" /> },
-  { label: "Reports", path: "/dashboard/reports", icon: <Printer className="w-5 h-5" /> },
-  { label: "Help", path: "/dashboard/help", icon: <HelpCircle className="w-5 h-5" /> },
+  { key: "nav.dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
+  { key: "nav.students", path: "/dashboard/students", icon: <GraduationCap className="w-5 h-5" /> },
+  { key: "nav.teachers", path: "/dashboard/teachers", icon: <Users className="w-5 h-5" /> },
+  { key: "nav.groups", path: "/dashboard/groups", icon: <BookOpen className="w-5 h-5" /> },
+  { key: "nav.rosters", path: "/dashboard/rosters", icon: <Users className="w-5 h-5" /> },
+  { key: "nav.absences", path: "/dashboard/absences", icon: <ClipboardList className="w-5 h-5" /> },
+  { key: "nav.justifications", path: "/dashboard/justifications", icon: <FileCheck className="w-5 h-5" /> },
+  { key: "nav.risk", path: "/dashboard/risk", icon: <ShieldAlert className="w-5 h-5" /> },
+  { key: "nav.reports", path: "/dashboard/reports", icon: <Printer className="w-5 h-5" /> },
+  { key: "nav.audit", path: "/dashboard/audit", icon: <History className="w-5 h-5" /> },
+  { key: "nav.help", path: "/dashboard/help", icon: <HelpCircle className="w-5 h-5" /> },
 ];
 
 const teacherNav: NavItem[] = [
-  { label: "Dashboard", path: "/teacher", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: "Mark Absence", path: "/teacher/mark", icon: <ClipboardList className="w-5 h-5" /> },
-  { label: "History", path: "/teacher/history", icon: <BookOpen className="w-5 h-5" /> },
-  { label: "Help", path: "/teacher/help", icon: <HelpCircle className="w-5 h-5" /> },
+  { key: "nav.dashboard", path: "/teacher", icon: <LayoutDashboard className="w-5 h-5" /> },
+  { key: "nav.mark", path: "/teacher/mark", icon: <ClipboardList className="w-5 h-5" /> },
+  { key: "nav.history", path: "/teacher/history", icon: <BookOpen className="w-5 h-5" /> },
+  { key: "nav.roster", path: "/teacher/roster", icon: <FolderPlus className="w-5 h-5" /> },
+  { key: "nav.modules", path: "/teacher/modules", icon: <BookOpenCheck className="w-5 h-5" /> },
+  { key: "nav.help", path: "/teacher/help", icon: <HelpCircle className="w-5 h-5" /> },
 ];
 
 const studentNav: NavItem[] = [
-  { label: "Dashboard", path: "/student", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { label: "My Absences", path: "/student/absences", icon: <ClipboardList className="w-5 h-5" /> },
-  { label: "Justifications", path: "/student/justifications", icon: <FileCheck className="w-5 h-5" /> },
-  { label: "Help", path: "/student/help", icon: <HelpCircle className="w-5 h-5" /> },
+  { key: "nav.dashboard", path: "/student", icon: <LayoutDashboard className="w-5 h-5" /> },
+  { key: "nav.myAbsences", path: "/student/absences", icon: <ClipboardList className="w-5 h-5" /> },
+  { key: "nav.justifications", path: "/student/justifications", icon: <FileCheck className="w-5 h-5" /> },
+  { key: "nav.help", path: "/student/help", icon: <HelpCircle className="w-5 h-5" /> },
 ];
 
 interface Props {
@@ -63,6 +70,7 @@ interface Props {
 }
 
 const DashboardLayout = ({ children, role }: Props) => {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -115,7 +123,7 @@ const DashboardLayout = ({ children, role }: Props) => {
               className={`nav-link ${isActive ? "active" : ""} ${collapsed && !mobile ? "justify-center px-2" : ""}`}
             >
               {item.icon}
-              {(!collapsed || mobile) && <span className="text-sm">{item.label}</span>}
+              {(!collapsed || mobile) && <span className="text-sm">{t(item.key)}</span>}
             </Link>
           );
         })}
@@ -129,12 +137,12 @@ const DashboardLayout = ({ children, role }: Props) => {
             className="nav-link w-full justify-center lg:justify-start"
           >
             <ChevronLeft className={`w-5 h-5 transition-transform ${collapsed ? "rotate-180" : ""}`} />
-            {!collapsed && <span className="text-sm">Collapse</span>}
+            {!collapsed && <span className="text-sm">{t("layout.collapse")}</span>}
           </button>
         )}
         <button onClick={handleLogout} className="nav-link w-full text-destructive hover:bg-destructive/10">
           <LogOut className="w-5 h-5" />
-          {(!collapsed || mobile) && <span className="text-sm">Logout</span>}
+          {(!collapsed || mobile) && <span className="text-sm">{t("layout.logout")}</span>}
         </button>
       </div>
     </motion.aside>
@@ -177,7 +185,7 @@ const DashboardLayout = ({ children, role }: Props) => {
             </button>
             <div>
               <h2 className="font-display font-semibold text-sm">{displayName}</h2>
-              <p className="text-xs text-muted-foreground">{roleLabel} · OFPPT Smart Attendance</p>
+              <p className="text-xs text-muted-foreground">{t(`layout.role${role.charAt(0).toUpperCase() + role.slice(1)}`)} · {t("app.shortName")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -186,9 +194,10 @@ const DashboardLayout = ({ children, role }: Props) => {
               className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <Search className="w-3.5 h-3.5" />
-              <span>Search...</span>
+              <span>{t("layout.searchPlaceholder")}</span>
               <kbd className="ml-2 px-1.5 py-0.5 rounded border border-border bg-muted font-mono text-[10px]">Ctrl+K</kbd>
             </button>
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationPanel />
             <DropdownMenu>
@@ -206,10 +215,10 @@ const DashboardLayout = ({ children, role }: Props) => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/account')} className="gap-2 cursor-pointer">
-                  <Settings className="w-4 h-4" /> Account Settings
+                  <Settings className="w-4 h-4" /> {t("layout.accountSettings")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
-                  <LogOut className="w-4 h-4" /> Logout
+                  <LogOut className="w-4 h-4" /> {t("layout.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

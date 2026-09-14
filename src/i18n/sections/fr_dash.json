@@ -1,0 +1,31 @@
+{
+  "dashboard": {
+    "morning": "Bonjour",
+    "afternoon": "Bon apr\u00e8s-midi",
+    "evening": "Bonsoir",
+    "adminSubtitle": "Voici ce qui se passe avec les pr\u00e9sences aujourd\u2019hui",
+    "roleAdmin": "Administrateur",
+    "roleTeacher": "Enseignant",
+    "roleStudent": "El\u00e8ve",
+    "statStudents": "Total des \u00e9l\u00e8ves",
+    "statTeachers": "Total des enseignants",
+    "statAbsenceRate": "Taux d\u2019absence",
+    "statPending": "En attente de validation",
+    "statHighRisk": "Risque \u00e9lev\u00e9",
+    "statLate": "Retards",
+    "chartTitle": "Tendance des absences",
+    "chartSubtitle": "Heures d\u2019absence \u00b7 30 derniers jours",
+    "legendAbsence": "Heures d\u2019absence",
+    "heatmapTitle": "Carte hebdomadaire",
+    "heatmapSubtitle": "Intensit\u00e9 des absences par jour",
+    "sysInfo": "Infos syst\u00e8me",
+    "platform": "Plateforme",
+    "academicYear": "Ann\u00e9e scolaire",
+    "semester": "Semestre",
+    "server": "Serveur",
+    "online": "En ligne",
+    "recentAbsences": "Absences r\u00e9centes",
+    "recentSubtitle": "Derniers enregistrements",
+    "today": "Aujourd\u2019hui"
+  }
+}

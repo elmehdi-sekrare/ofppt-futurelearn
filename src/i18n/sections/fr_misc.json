@@ -1,0 +1,42 @@
+{
+  "search": {
+    "placeholder": "Rechercher \u00e9l\u00e8ves, enseignants, groupes, pages...",
+    "pages": "Pages",
+    "students": "El\u00e8ves",
+    "teachers": "Enseignants",
+    "groups": "Groupes",
+    "button": "Rechercher..."
+  },
+  "help": {
+    "title": "Centre d\u2019aide"
+  },
+  "reports": {
+    "title": "Rapports"
+  },
+  "justifications": {
+    "title": "Justifications"
+  },
+  "audit": {
+    "title": "Journal d\u2019audit"
+  },
+  "risk": {
+    "title": "Tableau des risques"
+  },
+  "account": {
+    "title": "Param\u00e8tres du compte"
+  },
+  "notFound": {
+    "title": "Page introuvable"
+  },
+  "status": {
+    "present": "Pr\u00e9sent",
+    "late": "En retard",
+    "absent": "Absent",
+    "excused": "Excus\u00e9",
+    "pending": "En attente",
+    "approved": "Approuv\u00e9e",
+    "rejected": "Rejet\u00e9e",
+    "justified": "Justifi\u00e9e",
+    "unjustified": "Non justifi\u00e9e"
+  }
+}

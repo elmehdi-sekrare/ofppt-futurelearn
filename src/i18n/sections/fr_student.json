@@ -1,0 +1,17 @@
+{
+  "student": {
+    "subtitle": "Votre r\u00e9sum\u00e9 de pr\u00e9sence en un coup d\u2019\u0153il",
+    "danger": "Zone de danger !",
+    "dangerText": "Vous avez atteint {{pct}} % du maximum autoris\u00e9 ({{hours}}h / {{max}}h). Contactez l\u2019administration imm\u00e9diatement.",
+    "warning": "Avertissement",
+    "warningText": "Vous \u00eates \u00e0 {{pct}} % du maximum autoris\u00e9 ({{hours}}h / {{max}}h). Faites attention \u00e0 vos absences.",
+    "perfect": "Excellent travail !",
+    "perfectText": "Aucune absence enregistr\u00e9e. Continuez comme \u00e7a !",
+    "statHours": "Heures d\u2019absence",
+    "statPending": "En attente de validation",
+    "statUnjustified": "Non justifi\u00e9es",
+    "gaugeTitle": "Taux de pr\u00e9sence",
+    "gaugeHint": "Restez au-dessus de 80 % pour rester en r\u00e8gle",
+    "limitTitle": "Suivi de la limite d\u2019absences"
+  }
+}

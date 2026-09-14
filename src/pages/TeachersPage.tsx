@@ -9,9 +9,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSuccessNotification } from "@/components/SuccessNotification";
+import { StyledSelect } from "@/components/ui/styled-select";
 import type { Teacher } from "@/types/api";
-
-const subjects = ["JavaScript / React", "Réseaux / Électronique", "Base de données / UML", "PHP / Laravel", "Mathématiques", "Python", "DevOps"];
 
 const TeachersPage = () => {
   const queryClient = useQueryClient();
@@ -24,7 +23,8 @@ const TeachersPage = () => {
   const { toast } = useToast();
   const { showSuccess, NotificationComponent } = useSuccessNotification();
 
-  const [form, setForm] = useState({ firstName: "", lastName: "", subject: "", phone: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "" });
+  const [groupIds, setGroupIds] = useState<number[]>([]);
 
   useEffect(() => {
     setPortalRoot(document.body);
@@ -36,6 +36,9 @@ const TeachersPage = () => {
   });
 
   const teachers = teachersRes?.data ?? [];
+  const { data: groupsRes } = useQuery({ queryKey: ["groups"], queryFn: api.getGroups });
+  const groups = (groupsRes?.data ?? []).filter((group) => (group.status ?? "active") === "active");
+  const subjectOptions = Array.from(new Set(teachers.flatMap((teacher) => teacher.subjects ?? []).filter(Boolean)));
 
   const saveMutation = useMutation({
     mutationFn: (data: { id?: number; payload: any }) => {
@@ -82,20 +85,22 @@ const TeachersPage = () => {
   const filtered = useMemo(() => {
     return teachers.filter((t) => {
       const matchSearch = `${t.first_name} ${t.last_name} ${t.email} ${t.subject}`.toLowerCase().includes(search.toLowerCase());
-      const matchSubject = !subjectFilter || t.subject === subjectFilter;
+      const matchSubject = !subjectFilter || (t.subjects ?? []).includes(subjectFilter);
       return matchSearch && matchSubject;
     });
   }, [teachers, search, subjectFilter]);
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ firstName: "", lastName: "", subject: subjects[0], phone: "" });
+    setForm({ firstName: "", lastName: "", phone: "" });
+    setGroupIds([]);
     setDialogOpen(true);
   };
 
   const openEdit = (t: Teacher) => {
     setEditing(t);
-    setForm({ firstName: t.first_name, lastName: t.last_name, subject: t.subject, phone: t.phone || "" });
+    setForm({ firstName: t.first_name, lastName: t.last_name, phone: t.phone || "" });
+    setGroupIds(t.group_ids ?? groups.filter((group) => t.groups_assigned.includes(group.name)).map((group) => group.id));
     setDialogOpen(true);
   };
 
@@ -104,7 +109,7 @@ const TeachersPage = () => {
       toast({ title: "Validation Error", description: "First name and last name are required", variant: "destructive" });
       return;
     }
-    const payload = { first_name: form.firstName, last_name: form.lastName, subject: form.subject, phone: form.phone };
+    const payload = { first_name: form.firstName, last_name: form.lastName, phone: form.phone, group_ids: groupIds };
     saveMutation.mutate({ id: editing?.id, payload });
   };
 
@@ -136,13 +141,13 @@ const TeachersPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search teachers..." className="pl-10 input-glass" />
         </div>
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className="pl-10 pr-4 h-10 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground appearance-none cursor-pointer min-w-[180px]">
-            <option value="">All Subjects</option>
-            {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
+        <StyledSelect
+          value={subjectFilter}
+          onValueChange={setSubjectFilter}
+          icon={<Filter className="w-4 h-4" />}
+          className="min-w-[180px]"
+          options={[{ label: "All Subjects", value: "" }, ...subjectOptions.map((subject) => ({ label: subject, value: subject }))]}
+        />
       </div>
 
       <div className="glass-panel overflow-hidden">
@@ -172,7 +177,9 @@ const TeachersPage = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell">{t.subject}</td>
+                    <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell">
+                      {(t.subjects ?? []).length > 0 ? t.subjects?.join(", ") : "No subjects created"}
+                    </td>
                     <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{t.email}</td>
                     <td className="py-3 px-4 hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1">
@@ -233,11 +240,17 @@ const TeachersPage = () => {
                     <label className="text-sm text-muted-foreground">Phone</label>
                     <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-glass" />
                   </div>
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-sm text-muted-foreground">Subject</label>
-                    <select value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className="w-full h-10 rounded-md px-3 bg-secondary/50 border border-white/[0.08] text-sm text-foreground">
-                      {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm text-muted-foreground">Assigned Groups</label>
+                    <p className="text-xs text-muted-foreground">Choose the active groups this teacher can access. Subjects are managed by the teacher through My Modules.</p>
+                    <div className="max-h-32 overflow-y-auto rounded-lg border border-border/60 p-2 space-y-1">
+                      {groups.length === 0 ? <p className="text-xs text-muted-foreground p-2">Create groups first.</p> : groups.map((group) => (
+                        <label key={group.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-secondary/50">
+                          <input type="checkbox" checked={groupIds.includes(group.id)} onChange={(event) => setGroupIds((current) => event.target.checked ? [...current, group.id] : current.filter((id) => id !== group.id))} />
+                          <span>{group.name}</span><span className="text-xs text-muted-foreground">({group.student_count})</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">

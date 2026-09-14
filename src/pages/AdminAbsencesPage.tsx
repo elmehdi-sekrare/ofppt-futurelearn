@@ -5,26 +5,37 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { exportAbsencesCSV } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StyledSelect } from "@/components/ui/styled-select";
 
 const statusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
   justified: "bg-emerald-500/10 text-emerald-400",
   unjustified: "bg-destructive/10 text-destructive",
+  voided: "bg-muted text-muted-foreground",
+};
+
+const attendanceColors: Record<string, string> = {
+  present: "bg-emerald-500/10 text-emerald-400",
+  late: "bg-warning/10 text-warning",
+  absent: "bg-destructive/10 text-destructive",
+  excused: "bg-primary/10 text-primary",
 };
 
 const AdminAbsencesPage = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [attendanceFilter, setAttendanceFilter] = useState("absent");
   const [dateFilter, setDateFilter] = useState("");
 
   const { data: absencesRes, isLoading: loadingAbsences } = useQuery({
-    queryKey: ["absences", { group: groupFilter, status: statusFilter, date: dateFilter, search }],
-    queryFn: () => api.getAbsences({ group: groupFilter, status: statusFilter, date: dateFilter, search }),
+    queryKey: ["absences", { group: groupFilter, status: statusFilter, attendance_status: attendanceFilter, date: dateFilter, search }],
+    queryFn: () => api.getAbsences({ group: groupFilter, status: statusFilter, attendance_status: attendanceFilter, date: dateFilter, search }),
   });
 
   const { data: groupsRes } = useQuery({
@@ -35,6 +46,21 @@ const AdminAbsencesPage = () => {
   const absences = absencesRes?.data ?? [];
   const groups = groupsRes?.data ?? [];
 
+  const resolveMutation = useMutation({
+    mutationFn: ({ id, action, note }: { id: number; action: "justified" | "unjustified" | "voided"; note: string }) => api.resolveAbsence(id, action, note),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["absences"] });
+      toast({ title: "Absence updated", description: "The administrative decision was recorded." });
+    },
+    onError: (error: Error) => toast({ title: "Could not update absence", description: error.message, variant: "destructive" }),
+  });
+
+  const resolveAbsence = (id: number, action: "justified" | "unjustified" | "voided") => {
+    const note = window.prompt(action === "voided" ? "Why should this absence be removed from calculations?" : "Add an administrative note:");
+    if (!note?.trim()) return;
+    resolveMutation.mutate({ id, action, note: note.trim() });
+  };
+
   const filtered = absences; // Filtering is done server-side
   const totalHours = filtered.reduce((sum, a) => sum + a.hours, 0);
 
@@ -43,6 +69,11 @@ const AdminAbsencesPage = () => {
     pending: absences.filter((a) => a.status === "pending").length,
     justified: absences.filter((a) => a.status === "justified").length,
     unjustified: absences.filter((a) => a.status === "unjustified").length,
+  }), [absences]);
+  const attendanceCounts = useMemo(() => ({
+    late: absences.filter((a) => a.attendance_status === "late").length,
+    present: absences.filter((a) => a.attendance_status === "present").length,
+    excused: absences.filter((a) => a.attendance_status === "excused").length,
   }), [absences]);
 
   if (loadingAbsences) {
@@ -70,12 +101,17 @@ const AdminAbsencesPage = () => {
       </motion.div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
+        {(attendanceFilter !== "absent" ? [
+          { label: "Total", value: absences.length, color: "text-foreground" },
+          { label: "Late", value: attendanceCounts.late, color: "text-warning" },
+          { label: "Present", value: attendanceCounts.present, color: "text-emerald-400" },
+          { label: "Excused", value: attendanceCounts.excused, color: "text-primary" },
+        ] : [
           { label: "Total", value: statusCounts.total, color: "text-foreground" },
           { label: "Pending", value: statusCounts.pending, color: "text-warning" },
           { label: "Justified", value: statusCounts.justified, color: "text-emerald-400" },
           { label: "Unjustified", value: statusCounts.unjustified, color: "text-destructive" },
-        ].map((s) => (
+        ]).map((s) => (
           <div key={s.label} className="glass-panel p-4 text-center">
             <p className={`text-2xl font-display font-bold ${s.color}`}>{s.value}</p>
             <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
@@ -88,16 +124,30 @@ const AdminAbsencesPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search student, subject, teacher..." className="pl-10 input-glass" />
         </div>
-        <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="h-10 px-3 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground appearance-none cursor-pointer min-w-[130px]">
-          <option value="">All Groups</option>
-          {groups.map((g) => <option key={g.id} value={g.name}>{g.name}</option>)}
-        </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 px-3 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground appearance-none cursor-pointer min-w-[130px]">
-          <option value="">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="justified">Justified</option>
-          <option value="unjustified">Unjustified</option>
-        </select>
+        <StyledSelect
+          value={attendanceFilter}
+          onValueChange={setAttendanceFilter}
+          className="min-w-[130px]"
+          options={[{ label: "Absences", value: "absent" }, { label: "Late arrivals", value: "late" }, { label: "Present", value: "present" }, { label: "Excused attendance", value: "excused" }, { label: "All attendance", value: "" }]}
+        />
+        <StyledSelect
+          value={groupFilter}
+          onValueChange={setGroupFilter}
+          className="min-w-[130px]"
+          options={[{ label: "All Groups", value: "" }, ...groups.map((g) => ({ label: g.name, value: g.name }))]}
+        />
+        <StyledSelect
+          value={statusFilter}
+          onValueChange={setStatusFilter}
+          className="min-w-[130px]"
+          options={[
+            { label: "All Status", value: "" },
+            { label: "Pending", value: "pending" },
+            { label: "Justified", value: "justified" },
+            { label: "Unjustified", value: "unjustified" },
+            { label: "Removed", value: "voided" },
+          ]}
+        />
         <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="input-glass w-auto" />
       </div>
 
@@ -112,7 +162,9 @@ const AdminAbsencesPage = () => {
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Time</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Subject</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Hours</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Attendance</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Justification</th>
+                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Admin action</th>
               </tr>
             </thead>
             <tbody>
@@ -142,7 +194,17 @@ const AdminAbsencesPage = () => {
                     <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{a.subject}</td>
                     <td className="py-3 px-4 font-medium">{a.hours}h</td>
                     <td className="py-3 px-4">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${statusColors[a.status]}`}>{a.status}</span>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${attendanceColors[a.attendance_status]}`}>{a.attendance_status}{a.attendance_status === "late" ? ` · ${a.late_minutes}m` : ""}</span>
+                    </td>
+                    <td className="py-3 px-4 hidden lg:table-cell">
+                      {(a.attendance_status === "absent" || a.attendance_status === "late") ? <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${statusColors[a.status]}`}>{a.status}</span> : <span className="text-xs text-muted-foreground">—</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {(a.attendance_status === "absent" || a.attendance_status === "late") && <div className="flex justify-end gap-1 flex-wrap">
+                        {a.status !== "justified" && <Button size="sm" variant="outline" onClick={() => resolveAbsence(a.id, "justified")} className="h-7 text-xs">Justify</Button>}
+                        {a.status !== "unjustified" && <Button size="sm" variant="ghost" onClick={() => resolveAbsence(a.id, "unjustified")} className="h-7 text-xs">Unjustify</Button>}
+                        {a.status !== "voided" && <Button size="sm" variant="ghost" onClick={() => resolveAbsence(a.id, "voided")} className="h-7 text-xs">Remove</Button>}
+                      </div>}
                     </td>
                   </motion.tr>
                 ))}

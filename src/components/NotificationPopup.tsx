@@ -23,9 +23,14 @@ const NotificationPopup = () => {
   const [popups, setPopups] = useState<Notification[]>([]);
   const [hasFetched, setHasFetched] = useState(false);
 
-  // Fetch notifications once on mount (login)
+  // Fetch on mount, then poll so new notifications (e.g. a justification
+  // decision) appear without a manual page reload.
   useEffect(() => {
     fetchNotifications().then(() => setHasFetched(true));
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   // After fetch, queue unread notifications as popups

@@ -1,0 +1,30 @@
+{
+  "absences": {
+    "title": "Absences",
+    "records": "dossiers",
+    "totalHours": "h au total",
+    "exportDone": "Export termin\u00e9",
+    "exportDesc": "{{count}} dossiers export\u00e9s en CSV",
+    "total": "Total",
+    "late": "En retard",
+    "present": "Pr\u00e9sent",
+    "excused": "Excus\u00e9",
+    "pending": "En attente",
+    "justified": "Justifi\u00e9e",
+    "unjustified": "Non justifi\u00e9e",
+    "updated": "Absence mise \u00e0 jour",
+    "updatedDesc": "La d\u00e9cision administrative a \u00e9t\u00e9 enregistr\u00e9e.",
+    "updateFailed": "Impossible de mettre \u00e0 jour l\u2019absence"
+  },
+  "mark": {
+    "present": "Pr\u00e9sent",
+    "late": "En retard",
+    "absent": "Absent",
+    "excused": "Excus\u00e9",
+    "markAll": "Tous pr\u00e9sents",
+    "save": "Enregistrer les pr\u00e9sences",
+    "submitting": "Envoi...",
+    "selectGroup": "S\u00e9lectionner un groupe",
+    "selectGroupHint": "Choisissez un groupe ci-dessus pour voir et saisir les absences"
+  }
+}

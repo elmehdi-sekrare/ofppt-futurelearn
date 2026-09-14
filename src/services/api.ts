@@ -13,6 +13,12 @@ import type {
   CreateGroupPayload,
   CreateAbsencePayload,
   AbsenceFilters,
+  RiskStudent,
+  AuditLog,
+  CourseModule,
+  ImportPreview,
+  ModuleImportRow,
+  StudentImportRow,
 } from "@/types/api";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
@@ -78,7 +84,7 @@ export const api = {
   },
 
   getMe() {
-    return request<User>("/me");
+    return request<ApiResponse<User>>("/me").then((response) => response.data);
   },
 
   updateProfile(data: { first_name?: string; last_name?: string; email?: string; phone?: string; profile_image?: File | null }) {
@@ -109,11 +115,15 @@ export const api = {
   },
 
   getDashboardChart() {
-    return request<ApiResponse<{ month: string; attendance: number; absences: number }[]>>("/dashboard/chart");
+    return request<ApiResponse<{ day: string; date: string; attendance: number; absences: number; count: number }[]>>("/dashboard/chart");
   },
 
   getDashboardHeatmap() {
     return request<ApiResponse<{ week: string; days: number[] }[]>>("/dashboard/heatmap");
+  },
+
+  getRiskStudents() {
+    return request<ApiResponse<RiskStudent[]>>("/dashboard/risk");
   },
 
   // ─── Students ──────────────────────────────────────
@@ -137,6 +147,13 @@ export const api = {
 
   deleteStudent(id: number) {
     return request<void>(`/students/${id}`, { method: "DELETE" });
+  },
+
+  deleteStudents(ids: number[]) {
+    return request<ApiResponse<{ deleted: number }>>("/students-bulk", {
+      method: "DELETE",
+      body: JSON.stringify({ student_ids: ids }),
+    });
   },
 
   // ─── Teachers ──────────────────────────────────────
@@ -189,6 +206,50 @@ export const api = {
     return request<void>(`/groups/${id}`, { method: "DELETE" });
   },
 
+  updateGroupsStatus(ids: number[], action: "archive" | "restore" | "delete") {
+    return request<ApiResponse<{ archived?: number; restored?: number; deleted?: number }>>("/groups-bulk", {
+      method: "DELETE",
+      body: JSON.stringify({ group_ids: ids, action }),
+    });
+  },
+
+  // ─── Teacher modules ──────────────────────────────
+  getModules() {
+    return request<ApiResponse<CourseModule[]>>("/modules");
+  },
+
+  createModule(data: { name: string }) {
+    return request<ApiResponse<CourseModule>>("/modules", { method: "POST", body: JSON.stringify(data) });
+  },
+
+  updateModule(id: number, data: { name: string }) {
+    return request<ApiResponse<CourseModule>>(`/modules/${id}`, { method: "PUT", body: JSON.stringify(data) });
+  },
+
+  deleteModule(id: number) {
+    return request<void>(`/modules/${id}`, { method: "DELETE" });
+  },
+
+  previewStudentImport(groupId: number, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<ApiResponse<ImportPreview<StudentImportRow>>>(`/groups/${groupId}/student-imports/preview`, { method: "POST", body: formData });
+  },
+
+  commitStudentImport(batchId: number, rows: { index: number; action: "import" | "update" | "skip"; first_name?: string; last_name?: string }[]) {
+    return request<ApiResponse<{ created: number; updated: number; skipped: number; credentials: { first_name: string; last_name: string; cne: string; email: string; temporary_password: string }[] }>>(`/student-imports/${batchId}/commit`, { method: "POST", body: JSON.stringify({ rows }) });
+  },
+
+  previewModuleImport(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<ApiResponse<ImportPreview<ModuleImportRow>>>("/module-imports/preview", { method: "POST", body: formData });
+  },
+
+  commitModuleImport(batchId: number, rows: { index: number; action: "import" | "skip"; name?: string }[]) {
+    return request<ApiResponse<{ created: number; skipped: number }>>(`/module-imports/${batchId}/commit`, { method: "POST", body: JSON.stringify({ rows }) });
+  },
+
   // ─── Absences ──────────────────────────────────────
   getAbsences(filters?: AbsenceFilters) {
     const params = new URLSearchParams();
@@ -201,10 +262,25 @@ export const api = {
     return request<ApiResponse<Absence[]>>(`/absences${qs ? `?${qs}` : ""}`);
   },
 
+  getStudentAbsenceHistory(studentId: number) {
+    return request<ApiResponse<Absence[]>>(`/absences/student-history/${studentId}`);
+  },
+
   createAbsence(data: CreateAbsencePayload) {
     return request<ApiResponse<Absence[]>>("/absences", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  },
+
+  deleteAbsence(id: number) {
+    return request<void>(`/absences/${id}`, { method: "DELETE" });
+  },
+
+  resolveAbsence(id: number, action: "justified" | "unjustified" | "voided", note: string) {
+    return request<ApiResponse<Absence>>(`/absences/${id}/resolve`, {
+      method: "PATCH",
+      body: JSON.stringify({ action, note }),
     });
   },
 
@@ -234,9 +310,14 @@ export const api = {
     });
   },
 
+  // ─── Audit trail ──────────────────────────────────
+  getAuditLogs(limit = 100) {
+    return request<ApiResponse<AuditLog[]>>(`/audit-logs?limit=${limit}`);
+  },
+
   // ─── Notifications ───────────────────────────────
   getNotifications() {
-    return request<ApiResponse<{ id: number; title: string; message: string; type: string; read: boolean; createdAt: string }[]>>("/notifications");
+    return request<ApiResponse<{ id: number; title: string; message: string; type: "info" | "warning" | "success" | "error"; read: boolean; createdAt: string }[]>>("/notifications");
   },
 
   markNotificationRead(id: number) {

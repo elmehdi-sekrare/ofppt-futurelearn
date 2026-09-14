@@ -1,11 +1,14 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Calendar, Clock, BookOpen, Users, Filter, GraduationCap } from "lucide-react";
+import { Search, Calendar, Clock, BookOpen, Users, Filter, GraduationCap, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StyledSelect } from "@/components/ui/styled-select";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -20,13 +23,38 @@ const statusColors: Record<string, string> = {
   unjustified: "bg-destructive/10 text-destructive",
 };
 
+const attendanceColors: Record<string, string> = {
+  present: "bg-emerald-500/10 text-emerald-400",
+  late: "bg-warning/10 text-warning",
+  absent: "bg-destructive/10 text-destructive",
+  excused: "bg-primary/10 text-primary",
+};
+
 const TeacherHistoryPage = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<{ id: number; name: string; group: string } | null>(null);
   const [lookupGroupId, setLookupGroupId] = useState<number | null>(null);
   const [lookupStudentId, setLookupStudentId] = useState<number | null>(null);
+  const [absenceToRemove, setAbsenceToRemove] = useState<{ id: number; studentName: string; subject: string } | null>(null);
+
+  const removeAbsenceMutation = useMutation({
+    mutationFn: (absenceId: number) => api.deleteAbsence(absenceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["absences"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["group-students"] });
+      setAbsenceToRemove(null);
+      toast({ title: "Absence removed", description: "The attendance record was permanently removed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Could not remove absence", description: error.message, variant: "destructive" });
+    },
+  });
 
   const { data: absencesRes, isLoading } = useQuery({
     queryKey: ["absences", "teacher-history"],
@@ -40,17 +68,7 @@ const TeacherHistoryPage = () => {
     error: studentHistoryError,
   } = useQuery({
     queryKey: ["absences", "student-history", selectedStudent?.id],
-    queryFn: () => {
-      const apiWithHistory = api as typeof api & {
-        getStudentAbsenceHistory?: (studentId: number) => Promise<{ data: typeof studentHistoryRes extends { data: infer T } ? T : never }>;
-      };
-
-      if (apiWithHistory.getStudentAbsenceHistory) {
-        return apiWithHistory.getStudentAbsenceHistory(selectedStudent!.id);
-      }
-
-      return api.getAbsences({ student_id: selectedStudent!.id, sort: "latest" });
-    },
+    queryFn: () => api.getStudentAbsenceHistory(selectedStudent!.id),
     enabled: !!selectedStudent,
   });
 
@@ -157,45 +175,36 @@ const TeacherHistoryPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search student or subject..." className="pl-10 input-glass" />
         </div>
-        <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="pl-10 pr-4 h-10 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground appearance-none cursor-pointer min-w-[130px]">
-            <option value="">All Groups</option>
-            {myGroups.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </div>
+        <StyledSelect
+          value={groupFilter}
+          onValueChange={setGroupFilter}
+          icon={<Filter className="w-4 h-4" />}
+          className="min-w-[130px]"
+          options={[{ label: "All Groups", value: "" }, ...myGroups.map((g) => ({ label: g, value: g }))]}
+        />
         <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="input-glass w-auto" />
       </div>
 
       <div className="glass-panel p-4 space-y-3">
         <p className="text-sm font-medium">Open student history directly</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <select
-            value={lookupGroupId ?? ""}
-            onChange={(e) => {
-              const next = e.target.value ? Number(e.target.value) : null;
-              setLookupGroupId(next);
+          <StyledSelect
+            value={lookupGroupId != null ? String(lookupGroupId) : ""}
+            onValueChange={(v) => {
+              setLookupGroupId(v ? Number(v) : null);
               setLookupStudentId(null);
             }}
-            className="h-10 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground px-3"
-          >
-            <option value="">Select group</option>
-            {teacherGroups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+            placeholder="Select group"
+            options={teacherGroups.map((g) => ({ label: g.name, value: String(g.id) }))}
+          />
 
-          <select
-            value={lookupStudentId ?? ""}
-            onChange={(e) => setLookupStudentId(e.target.value ? Number(e.target.value) : null)}
+          <StyledSelect
+            value={lookupStudentId != null ? String(lookupStudentId) : ""}
+            onValueChange={(v) => setLookupStudentId(v ? Number(v) : null)}
             disabled={!lookupGroupId}
-            className="h-10 rounded-md bg-secondary/50 border border-white/[0.08] text-sm text-foreground px-3 disabled:opacity-60"
-          >
-            <option value="">Select student</option>
-            {lookupStudents.map((s) => (
-              <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>
-            ))}
-          </select>
+            placeholder="Select student"
+            options={lookupStudents.map((s) => ({ label: `${s.first_name} ${s.last_name}`, value: String(s.id) }))}
+          />
 
           <Button onClick={openStudentHistoryFromLookup} disabled={!lookupStudentId} className="btn-glow border-0">
             View History
@@ -235,7 +244,19 @@ const TeacherHistoryPage = () => {
                           <span>{a.hours}h</span>
                         </div>
                       </div>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize shrink-0 ${statusColors[a.status]}`}>{a.status}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${attendanceColors[a.attendance_status]}`}>{a.attendance_status}{a.attendance_status === "late" ? ` · ${a.late_minutes}m` : ""}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5 border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => setAbsenceToRemove({ id: a.id, studentName: a.student_name, subject: a.subject })}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Remove
+                        </Button>
+                      </div>
                     </div>
                     {a.notes && <p className="text-xs text-muted-foreground mt-2 italic">"{a.notes}"</p>}
                   </div>
@@ -327,7 +348,7 @@ const TeacherHistoryPage = () => {
                             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Marked By</th>
                             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
                             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Hours</th>
-                            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Attendance</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -342,8 +363,8 @@ const TeacherHistoryPage = () => {
                               <td className="py-3 px-4 whitespace-nowrap">{absence.start_time} - {absence.end_time}</td>
                               <td className="py-3 px-4">{absence.hours}h</td>
                               <td className="py-3 px-4">
-                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${statusColors[absence.status]}`}>
-                                  {absence.status}
+                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${attendanceColors[absence.attendance_status]}`}>
+                                  {absence.attendance_status}{absence.attendance_status === "late" ? ` · ${absence.late_minutes}m` : ""}
                                 </span>
                               </td>
                             </tr>
@@ -358,6 +379,16 @@ const TeacherHistoryPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!absenceToRemove}
+        title="Remove this absence?"
+        description={absenceToRemove ? `This permanently removes ${absenceToRemove.studentName}'s ${absenceToRemove.subject} absence from the system.` : ""}
+        confirmLabel="Remove absence"
+        loading={removeAbsenceMutation.isPending}
+        onConfirm={() => absenceToRemove && removeAbsenceMutation.mutate(absenceToRemove.id)}
+        onCancel={() => !removeAbsenceMutation.isPending && setAbsenceToRemove(null)}
+      />
     </div>
   );
 };

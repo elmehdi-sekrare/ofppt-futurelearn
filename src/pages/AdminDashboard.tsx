@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Users, GraduationCap, Clock, FileCheck, AlertTriangle, TrendingUp, Shield } from "lucide-react";
+import { Users, GraduationCap, Clock, FileCheck, AlertTriangle, Shield, ShieldAlert } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import AttendanceChart from "@/components/AttendanceChart";
 import RecentAbsences from "@/components/RecentAbsences";
@@ -46,9 +46,9 @@ const AdminDashboard = () => {
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
+          Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))
         ) : (
@@ -57,6 +57,8 @@ const AdminDashboard = () => {
             <StatCard title="Total Teachers" value={stats?.total_teachers ?? 0} icon={<Users className="w-5 h-5" />} delay={0.1} />
             <StatCard title="Absence Rate" value={stats?.absence_rate ?? 0} suffix="%" icon={<AlertTriangle className="w-5 h-5" />} delay={0.2} />
             <StatCard title="Pending Reviews" value={stats?.pending_reviews ?? 0} icon={<FileCheck className="w-5 h-5" />} delay={0.3} />
+            <StatCard title="High Risk" value={stats?.high_risk_students ?? 0} icon={<ShieldAlert className="w-5 h-5" />} delay={0.4} />
+            <StatCard title="Late Arrivals" value={stats?.late_count ?? 0} icon={<Clock className="w-5 h-5" />} delay={0.5} />
           </>
         )}
       </div>
@@ -66,12 +68,12 @@ const AdminDashboard = () => {
         <div className="lg:col-span-2 glass-panel p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-display font-semibold">Attendance Overview</h3>
-              <p className="text-xs text-muted-foreground">Monthly attendance rate</p>
+              <h3 className="font-display font-semibold">Absence Trend</h3>
+              <p className="text-xs text-muted-foreground">Absence hours · last 30 days</p>
             </div>
-            <div className="flex items-center gap-1 text-xs text-success">
-              <TrendingUp className="w-3.5 h-3.5" />
-              +4.5%
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="w-2.5 h-2.5 rounded-full bg-[hsl(340,82%,60%)]" />
+              Absence hours
             </div>
           </div>
           <AttendanceChart />

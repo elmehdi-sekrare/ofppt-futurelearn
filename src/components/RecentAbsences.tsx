@@ -6,12 +6,13 @@ const statusStyles: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
   justified: "bg-success/10 text-success",
   unjustified: "bg-destructive/10 text-destructive",
+  voided: "bg-muted text-muted-foreground",
 };
 
 const RecentAbsences = () => {
   const { data: res, isLoading } = useQuery({
     queryKey: ["absences", "recent"],
-    queryFn: () => api.getAbsences({ limit: 5, sort: "latest" }),
+    queryFn: () => api.getAbsences({ attendance_status: "absent,late", limit: 5, sort: "latest" }),
   });
 
   const absences = res?.data ?? [];
@@ -35,6 +36,7 @@ const RecentAbsences = () => {
             <th className="text-left py-3 font-medium">Group</th>
             <th className="text-left py-3 font-medium">Date</th>
             <th className="text-left py-3 font-medium">Hours</th>
+            <th className="text-left py-3 font-medium">Type</th>
             <th className="text-left py-3 font-medium">Status</th>
           </tr>
         </thead>
@@ -45,16 +47,21 @@ const RecentAbsences = () => {
               <td className="py-3 text-muted-foreground">{a.group_name}</td>
               <td className="py-3 text-muted-foreground">{a.date}</td>
               <td className="py-3">{a.hours}h</td>
+              <td className="py-3 capitalize">
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${a.attendance_status === "late" ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive"}`}>
+                  {a.attendance_status}{a.attendance_status === "late" ? ` · ${a.late_minutes}m` : ""}
+                </span>
+              </td>
               <td className="py-3">
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${statusStyles[a.status]}`}>
-                  {a.status}
+                  {a.status}{a.resolution_source === "admin" ? " · admin" : ""}
                 </span>
               </td>
             </tr>
           ))}
           {absences.length === 0 && (
             <tr>
-              <td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">No recent absences</td>
+              <td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">No recent absences</td>
             </tr>
           )}
         </tbody>

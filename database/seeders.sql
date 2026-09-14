@@ -14,11 +14,14 @@ INSERT INTO `groups` (`name`, `level`) VALUES
 ('GE-102', '1ere Annee'),
 ('ID-301', '3eme Annee');
 
-INSERT INTO `teachers` (`user_id`, `subject`) VALUES
-(2, 'JavaScript');
+INSERT INTO `teachers` (`user_id`) VALUES
+(2);
 
 INSERT INTO `students` (`user_id`, `cne`, `phone`, `group_id`) VALUES
 (3, 'R130456789', '0612345678', 1);
+
+INSERT INTO `group_students` (`group_id`, `student_id`) VALUES
+(1, 1);
 
 INSERT INTO `teacher_groups` (`teacher_id`, `group_id`) VALUES
 (1, 1), (1, 2);

@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Clock, BookOpen, Users, Send } from "lucide-react";
+import { Clock, BookOpen, Users, Send, CheckCircle2, Timer, CircleAlert, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSuccessNotification } from "@/components/SuccessNotification";
+import { StyledSelect } from "@/components/ui/styled-select";
 import QRSessionCode from "@/components/QRSessionCode";
+import { useTranslation } from "react-i18next";
+import type { AttendanceStatus } from "@/types/api";
+
+const attendanceOptionsBase: { value: AttendanceStatus; className: string; icon: typeof CheckCircle2 }[] = [
+  { value: "present", className: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10", icon: CheckCircle2 },
+  { value: "late", className: "border-amber-500/30 text-amber-400 bg-amber-500/10", icon: Timer },
+  { value: "absent", className: "border-destructive/30 text-destructive bg-destructive/10", icon: CircleAlert },
+  { value: "excused", className: "border-primary/30 text-primary bg-primary/10", icon: BadgeCheck },
+];
 
 const MarkAbsencePage = () => {
   const queryClient = useQueryClient();
@@ -16,18 +26,46 @@ const MarkAbsencePage = () => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [startTime, setStartTime] = useState("08:30");
   const [endTime, setEndTime] = useState("10:30");
-  const [subject, setSubject] = useState("");
+  const [moduleId, setModuleId] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
-  const [absentIds, setAbsentIds] = useState<Set<number>>(new Set());
-  const { toast } = useToast();
+  const [attendance, setAttendance] = useState<Record<number, AttendanceStatus>>({});
+  const [lateMinutes, setLateMinutes] = useState<Record<number, number>>({});
+    const { toast } = useToast();
   const { showSuccess, NotificationComponent } = useSuccessNotification();
+  const { t } = useTranslation();
+
+  const attendanceOptions = useMemo(
+    () =>
+      attendanceOptionsBase.map((opt) => ({
+        ...opt,
+        label: t(`mark.${opt.value}` as const),
+      })),
+    [t]
+  );
 
   const { data: groupsRes, isLoading: loadingGroups } = useQuery({
     queryKey: ["groups"],
     queryFn: () => api.getGroups(),
   });
 
-  const groups = groupsRes?.data ?? [];
+  const groups = (groupsRes?.data ?? []).filter((group) => (group.status ?? "active") === "active");
+
+  const { data: modulesRes, isLoading: loadingModules } = useQuery({
+    queryKey: ["modules"],
+    queryFn: () => api.getModules(),
+  });
+  const modules = modulesRes?.data ?? [];
+
+  // Pre-select the first group once groups have loaded so the page isn't empty
+  useEffect(() => {
+    if (selectedGroup == null && groups.length > 0) {
+      setSelectedGroup(groups[0].id);
+    }
+  }, [groups, selectedGroup]);
+
+  useEffect(() => {
+    if (moduleId == null && modules.length > 0) setModuleId(modules[0].id);
+  }, [modules, moduleId]);
 
   const { data: studentsRes, isLoading: loadingStudents } = useQuery({
     queryKey: ["group-students", selectedGroup],
@@ -39,12 +77,16 @@ const MarkAbsencePage = () => {
 
   const submitMutation = useMutation({
     mutationFn: () => api.createAbsence({
-      student_ids: Array.from(absentIds),
+      attendance_records: groupStudents.map((student) => ({
+        student_id: student.id,
+        attendance_status: attendance[student.id] ?? "present",
+        late_minutes: attendance[student.id] === "late" ? (lateMinutes[student.id] ?? 10) : undefined,
+      })),
       group_id: selectedGroup!,
       date,
       start_time: startTime,
       end_time: endTime,
-      subject,
+      module_id: moduleId!,
       notes,
     }),
     onSuccess: () => {
@@ -53,35 +95,35 @@ const MarkAbsencePage = () => {
       const group = groups.find((g) => g.id === selectedGroup);
       showSuccess({
         title: "Absences Recorded",
-        description: `${absentIds.size} absence(s) marked for ${group?.name}`,
+        description: `Attendance saved for ${groupStudents.length} students in ${group?.name}`,
         icon: "send",
         accentColor: "#3b82f6",
       });
-      setAbsentIds(new Set());
+      setAttendance({});
+      setLateMinutes({});
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
-  const toggleStudent = (id: number) => {
-    setAbsentIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    if (absentIds.size === groupStudents.length) {
-      setAbsentIds(new Set());
-    } else {
-      setAbsentIds(new Set(groupStudents.map((s) => s.id)));
+  const setStudentStatus = (id: number, status: AttendanceStatus) => {
+    setAttendance((previous) => ({ ...previous, [id]: status }));
+    if (status !== "late") {
+      setLateMinutes((previous) => {
+        const next = { ...previous };
+        delete next[id];
+        return next;
+      });
     }
   };
 
+  const markAllPresent = () => {
+    setAttendance({});
+    setLateMinutes({});
+  };
+
   const handleSubmit = () => {
-    if (!selectedGroup || !subject.trim() || absentIds.size === 0) {
-      toast({ title: "Validation Error", description: "Select a group, subject, and at least one absent student", variant: "destructive" });
+    if (!selectedGroup || !moduleId || groupStudents.length === 0) {
+      toast({ title: "Validation Error", description: "Select a group, one of your modules, and a group with students", variant: "destructive" });
       return;
     }
     submitMutation.mutate();
@@ -92,30 +134,32 @@ const MarkAbsencePage = () => {
     const [eh, em] = endTime.split(":").map(Number);
     return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
   })();
+  const statusCounts = groupStudents.reduce<Record<AttendanceStatus, number>>((counts, student) => {
+    const status = attendance[student.id] ?? "present";
+    counts[status] += 1;
+    return counts;
+  }, { present: 0, late: 0, absent: 0, excused: 0 });
+  const selectedModule = modules.find((module) => module.id === moduleId);
 
   return (
     <>
     {NotificationComponent}
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-display font-bold">Mark Absences</h1>
-        <p className="text-muted-foreground text-sm mt-1">Record student absences for your session</p>
+                <h1 className="text-2xl font-display font-bold">{t("mark.heading", { defaultValue: "Mark Attendance" })}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{t("mark.subtitle", { defaultValue: "Record present, late, absent, or excused attendance for this session" })}</p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="space-y-1.5">
           <label className="text-sm text-muted-foreground flex items-center gap-2"><BookOpen className="w-3.5 h-3.5" /> Group</label>
           {loadingGroups ? <Skeleton className="h-10 w-full" /> : (
-            <select
-              value={selectedGroup || ""}
-              onChange={(e) => { setSelectedGroup(Number(e.target.value)); setAbsentIds(new Set()); }}
-              className="w-full h-10 rounded-md px-3 bg-secondary/50 border border-white/[0.08] text-sm text-foreground"
-            >
-              <option value="">Select a group</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>{g.name} ({g.student_count} students)</option>
-              ))}
-            </select>
+            <StyledSelect
+              value={selectedGroup ? String(selectedGroup) : ""}
+              onValueChange={(v) => { setSelectedGroup(v ? Number(v) : null); markAllPresent(); }}
+                            placeholder={t("mark.selectGroup")}
+              options={groups.map((g) => ({ label: `${g.name} (${g.student_count} students)`, value: String(g.id) }))}
+            />
           )}
         </motion.div>
 
@@ -134,8 +178,16 @@ const MarkAbsencePage = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-1.5">
-          <label className="text-sm text-muted-foreground">Subject</label>
-          <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. JavaScript" className="input-glass" />
+          <label className="text-sm text-muted-foreground">Module</label>
+          {loadingModules ? <Skeleton className="h-10 w-full" /> : (
+            <StyledSelect
+              value={moduleId ? String(moduleId) : ""}
+              onValueChange={(value) => setModuleId(value ? Number(value) : null)}
+              placeholder={modules.length ? "Select a module" : "Create a module first"}
+              options={modules.map((module) => ({ label: module.name, value: String(module.id) }))}
+            />
+          )}
+          {!loadingModules && modules.length === 0 && <p className="text-xs text-amber-500">No modules yet. Create one from My Modules before recording attendance.</p>}
         </motion.div>
       </div>
 
@@ -145,7 +197,7 @@ const MarkAbsencePage = () => {
       </motion.div>
 
       {/* QR Session Code */}
-      {selectedGroup && subject.trim() && (
+      {selectedGroup && selectedModule && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <QRSessionCode
             groupName={groups.find((g) => g.id === selectedGroup)?.name ?? ""}
@@ -153,7 +205,7 @@ const MarkAbsencePage = () => {
             date={date}
             startTime={startTime}
             endTime={endTime}
-            subject={subject}
+            subject={selectedModule.name}
           />
         </motion.div>
       )}
@@ -168,42 +220,37 @@ const MarkAbsencePage = () => {
                 <Users className="w-5 h-5 text-primary" />
                 <div>
                   <h3 className="font-display font-semibold text-sm">Student Roster</h3>
-                  <p className="text-xs text-muted-foreground">{absentIds.size} absent of {groupStudents.length} students · {hours}h session</p>
+                                    <p className="text-xs text-muted-foreground">{statusCounts.present} {t("mark.present")} · {statusCounts.late} {t("mark.late")} · {statusCounts.absent} {t("mark.absent")} · {statusCounts.excused} {t("mark.excused")} · {hours}h {t("mark.session", { defaultValue: "session" })}</p>
                 </div>
               </div>
-              <button onClick={toggleAll} className="text-xs px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors">
-                {absentIds.size === groupStudents.length ? "Uncheck All" : "Check All"}
+                            <button onClick={markAllPresent} className="text-xs px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors">
+                {t("mark.markAll")}
               </button>
             </div>
 
             <div className="divide-y divide-border/50">
               {groupStudents.map((s) => {
-                const isAbsent = absentIds.has(s.id);
+                const status = attendance[s.id] ?? "present";
                 return (
-                  <button
+                  <div
                     key={s.id}
-                    onClick={() => toggleStudent(s.id)}
-                    className={`w-full flex items-center gap-4 px-4 py-3 text-left transition-all duration-200 ${
-                      isAbsent ? "bg-destructive/5" : "hover:bg-secondary/20"
-                    }`}
+                    className={`w-full flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 text-left transition-all duration-200 ${status === "absent" ? "bg-destructive/5" : "hover:bg-secondary/20"}`}
                   >
-                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 shrink-0 ${
-                      isAbsent ? "bg-destructive border-destructive" : "border-muted-foreground/30"
-                    }`}>
-                      {isAbsent && <Check className="w-3 h-3 text-destructive-foreground" />}
-                    </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`font-medium text-sm ${isAbsent ? "text-destructive" : ""}`}>
+                      <p className={`font-medium text-sm ${status === "absent" ? "text-destructive" : ""}`}>
                         {s.first_name} {s.last_name}
                       </p>
-                      <p className="text-xs text-muted-foreground">{s.cne} · Total: {s.total_absence_hours}h absent</p>
+                                            <p className="text-xs text-muted-foreground">{s.cne} · {t("mark.totalAbsent", { hours: s.total_absence_hours, defaultValue: "Total: {{hours}}h absent" })}</p>
                     </div>
-                    {isAbsent && (
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-destructive/10 text-destructive shrink-0">
-                        Absent
-                      </span>
-                    )}
-                  </button>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {attendanceOptions.map((option) => {
+                        const Icon = option.icon;
+                        const active = status === option.value;
+                        return <button key={option.value} type="button" onClick={() => setStudentStatus(s.id, option.value)} className={`h-8 px-2.5 rounded-md border text-xs font-medium flex items-center gap-1 transition-colors ${active ? option.className : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"}`}><Icon className="w-3.5 h-3.5" />{option.label}</button>;
+                      })}
+                                          {status === "late" && <Input aria-label={t("mark.lateMinutesAria", { name: `${s.first_name} ${s.last_name}`, defaultValue: "Late minutes for {{name}}" })} type="number" min="1" max="480" value={lateMinutes[s.id] ?? 10} onChange={(e) => setLateMinutes((previous) => ({ ...previous, [s.id]: Number(e.target.value) || 1 }))} className="h-8 w-20 input-glass text-xs" />}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -211,14 +258,14 @@ const MarkAbsencePage = () => {
             <div className="p-4 border-t border-border flex justify-end">
               <Button
                 onClick={handleSubmit}
-                disabled={absentIds.size === 0 || submitMutation.isPending}
+                disabled={groupStudents.length === 0 || !moduleId || submitMutation.isPending}
                 className="btn-glow text-primary-foreground border-0 gap-2"
               >
-                {submitMutation.isPending ? (
-                  "Submitting..."
+                                {submitMutation.isPending ? (
+                  t("mark.submitting")
                 ) : (
                   <>
-                    <Send className="w-4 h-4" /> Submit ({absentIds.size} absent)
+                    <Send className="w-4 h-4" /> {t("mark.save")}
                   </>
                 )}
               </Button>
@@ -228,8 +275,8 @@ const MarkAbsencePage = () => {
       ) : (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-panel p-12 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-          <h3 className="font-display font-semibold mb-1">Select a Group</h3>
-          <p className="text-sm text-muted-foreground">Choose a group above to view and mark student absences</p>
+                    <h3 className="font-display font-semibold mb-1">{t("mark.selectGroup")}</h3>
+          <p className="text-sm text-muted-foreground">{t("mark.selectGroupHint")}</p>
         </motion.div>
       )}
     </div>

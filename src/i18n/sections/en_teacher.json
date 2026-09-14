@@ -1,0 +1,19 @@
+{
+  "teacher": {
+    "overview": "Here is an overview of your classes and attendance.",
+    "markAttendance": "Mark Attendance",
+    "statGroups": "My Groups",
+    "statStudents": "My Students",
+    "statAbsences": "Absences (30d)",
+    "statLate": "Late arrivals (30d)",
+    "chartSubtitle": "Your groups - last 30 days",
+    "quickActions": "Quick actions",
+    "quickSubtitle": "Jump straight to a task",
+    "qaMark": "Mark absences",
+    "qaMarkDesc": "Record today attendance",
+    "qaHistory": "View history",
+    "qaHistoryDesc": "Browse past absences",
+    "recentTitle": "Recent absences",
+    "recentSubtitle": "Latest records from your groups"
+  }
+}
