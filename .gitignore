@@ -23,7 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Backend (separate repo)
-backend/
+# Backend copies / artifacts
 backend - Copy/
 backend - Copy.zip
+backend/.git_disabled/
+backend/.env.railway.bak
+backend/.phpunit.result.cache
