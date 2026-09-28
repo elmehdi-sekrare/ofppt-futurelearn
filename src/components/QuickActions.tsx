@@ -10,18 +10,18 @@ interface Props {
 
 const actions = {
   admin: [
-    { label: "Add Student", icon: <GraduationCap className="w-4 h-4" />, path: "/dashboard/students", color: "bg-blue-500" },
-    { label: "Add Teacher", icon: <Users className="w-4 h-4" />, path: "/dashboard/teachers", color: "bg-green-500" },
+    { label: "Add Student", icon: <GraduationCap className="w-4 h-4" />, path: "/dashboard/students", color: "bg-primary" },
+    { label: "Add Teacher", icon: <Users className="w-4 h-4" />, path: "/dashboard/teachers", color: "bg-success" },
     { label: "Add Group", icon: <BookOpen className="w-4 h-4" />, path: "/dashboard/groups", color: "bg-purple-500" },
-    { label: "View Absences", icon: <ClipboardList className="w-4 h-4" />, path: "/dashboard/absences", color: "bg-orange-500" },
+    { label: "View Absences", icon: <ClipboardList className="w-4 h-4" />, path: "/dashboard/absences", color: "bg-warning" },
   ],
   teacher: [
-    { label: "Mark Absence", icon: <ClipboardList className="w-4 h-4" />, path: "/teacher/mark", color: "bg-blue-500" },
-    { label: "View History", icon: <BookOpen className="w-4 h-4" />, path: "/teacher/history", color: "bg-green-500" },
+    { label: "Mark Absence", icon: <ClipboardList className="w-4 h-4" />, path: "/teacher/mark", color: "bg-primary" },
+    { label: "View History", icon: <BookOpen className="w-4 h-4" />, path: "/teacher/history", color: "bg-success" },
   ],
   student: [
-    { label: "My Absences", icon: <ClipboardList className="w-4 h-4" />, path: "/student/absences", color: "bg-blue-500" },
-    { label: "Justifications", icon: <BookOpen className="w-4 h-4" />, path: "/student/justifications", color: "bg-green-500" },
+    { label: "My Absences", icon: <ClipboardList className="w-4 h-4" />, path: "/student/absences", color: "bg-primary" },
+    { label: "Justifications", icon: <BookOpen className="w-4 h-4" />, path: "/student/justifications", color: "bg-success" },
   ],
 };
 
@@ -36,7 +36,7 @@ const QuickActions = ({ role }: Props) => {
   };
 
   return createPortal(
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9990 }}>
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 60 }}>
       <AnimatePresence>
         {open && (
           <motion.div

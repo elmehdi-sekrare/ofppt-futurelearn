@@ -1,239 +1,142 @@
-import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Scan, Calendar, AlertCircle, BarChart3, Eye } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Radar, CalendarCheck2, Hourglass } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { InsightPattern } from "@/types/api";
 
-const DAYS_FR = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-const DAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 
-interface PatternResult {
-  studentId: number;
-  studentName: string;
-  group: string;
-  pattern: string;
-  dayIndex: number;
-  count: number;
-  percentage: number;
-  severity: "critical" | "warning" | "info";
-}
+const SEVERITY = {
+  critical: { chip: "bg-destructive text-destructive-foreground", text: "text-destructive", bar: "bg-destructive" },
+  warning: { chip: "bg-warning text-warning-foreground", text: "text-warning", bar: "bg-warning" },
+  info: { chip: "bg-primary text-primary-foreground", text: "text-primary", bar: "bg-primary" },
+} as const;
 
 const SmartPatternDetector = () => {
-  const { data: absencesRes, isLoading } = useQuery({
-    queryKey: ["absences"],
-    queryFn: () => api.getAbsences({ limit: 500 }),
+  const { t } = useTranslation();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard", "insights"],
+    queryFn: () => api.getDashboardInsights(),
+    staleTime: 60_000,
   });
 
-  const patterns = useMemo<PatternResult[]>(() => {
-    const absences = absencesRes?.data ?? [];
-    if (!absences.length) return [];
+  const insights = data?.data;
+  const patterns: InsightPattern[] = insights?.patterns ?? [];
+  const totals = insights?.weekday_totals ?? [];
+  const peak = Math.max(1, ...totals);
+  const dayLabels = DAY_KEYS.map((k) => t(`weekdays.${k}`));
 
-    // Group absences by student
-    const studentMap = new Map<
-      string,
-      { name: string; group: string; dates: string[]; id: number }
-    >();
-
-    absences.forEach((a) => {
-      const key = a.student_name;
-      if (!studentMap.has(key)) {
-        studentMap.set(key, { name: a.student_name, group: a.group_name, dates: [], id: a.student_id });
-      }
-      studentMap.get(key)!.dates.push(a.date);
-    });
-
-    const results: PatternResult[] = [];
-
-    studentMap.forEach(({ name, group, dates, id }) => {
-      if (dates.length < 3) return; // Need at least 3 absences to detect a pattern
-
-      // Count absences per day of week
-      const dayCounts = [0, 0, 0, 0, 0, 0]; // Mon-Sat
-      dates.forEach((d) => {
-        const day = new Date(d).getDay();
-        const idx = day === 0 ? 5 : day - 1; // Sun→5, Mon→0, ...
-        dayCounts[idx]++;
-      });
-
-      const total = dates.length;
-      const maxDay = dayCounts.indexOf(Math.max(...dayCounts));
-      const maxCount = dayCounts[maxDay];
-      const pct = Math.round((maxCount / total) * 100);
-
-      // Only flag if >40% of absences are on the same day and count >= 3
-      if (pct >= 40 && maxCount >= 3) {
-        const severity: "critical" | "warning" | "info" =
-          pct >= 70 ? "critical" : pct >= 55 ? "warning" : "info";
-
-        results.push({
-          studentId: id,
-          studentName: name,
-          group,
-          pattern: `${pct}% of absences on ${DAYS_EN[maxDay]}s`,
-          dayIndex: maxDay,
-          count: maxCount,
-          percentage: pct,
-          severity,
-        });
-      }
-    });
-
-    return results.sort((a, b) => b.percentage - a.percentage).slice(0, 8);
-  }, [absencesRes]);
-
-  const getSeverityColor = (severity: string) => {
-    if (severity === "critical") return "text-red-400 bg-red-500/10 border-red-500/20";
-    if (severity === "warning") return "text-orange-400 bg-orange-500/10 border-orange-500/20";
-    return "text-blue-400 bg-blue-500/10 border-blue-500/20";
-  };
-
-  const getSeverityLabel = (severity: string) => {
-    if (severity === "critical") return "SUSPICIOUS";
-    if (severity === "warning") return "NOTABLE";
-    return "PATTERN";
-  };
-
-  // Compute global day-of-week distribution
-  const globalDayDist = useMemo(() => {
-    const absences = absencesRes?.data ?? [];
-    const counts = [0, 0, 0, 0, 0, 0];
-    absences.forEach((a) => {
-      const day = new Date(a.date).getDay();
-      const idx = day === 0 ? 5 : day - 1;
-      counts[idx]++;
-    });
-    const max = Math.max(...counts, 1);
-    return counts.map((c) => ({ count: c, pct: Math.round((c / max) * 100) }));
-  }, [absencesRes]);
+  const severityLabel = (s: InsightPattern["severity"]) =>
+    s === "critical" ? t("ai.suspicious") : s === "warning" ? t("ai.notable") : t("ai.pattern");
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6 }}
-      className="glass-panel overflow-hidden"
+      transition={{ delay: 0.25, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="glass-panel flex flex-col"
     >
-      {/* Header */}
-      <div className="relative p-5 pb-3">
-        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/3 via-transparent to-red-500/3" />
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center">
-              <Scan className="w-5 h-5 text-orange-400" />
-            </div>
-            <div>
-              <h3 className="font-display font-semibold text-sm flex items-center gap-2">
-                Pattern Detector
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-500/10 text-orange-400 uppercase tracking-wider">
-                  <Eye className="w-2.5 h-2.5" /> AI
-                </span>
-              </h3>
-              <p className="text-xs text-muted-foreground">Detects students always absent on the same day</p>
-            </div>
+      <header className="p-6 pb-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-accent/[0.1] flex items-center justify-center shrink-0">
+          <Radar className="w-5 h-5 text-accent" />
+        </div>
+        <div>
+          <h2 className="font-display font-semibold text-xl leading-tight">{t("ai.patternTitle")}</h2>
+          <p className="text-[13px] text-muted-foreground mt-0.5">{t("ai.patternSubtitle")}</p>
+        </div>
+      </header>
+
+      {insights?.has_data && totals.some((n) => n > 0) && (
+        <div className="px-6 pb-5">
+          <p className="eyebrow mb-3">{t("ai.patternDistribution")}</p>
+          <div className="flex items-end gap-1.5 h-16">
+            {totals.map((count, i) => {
+              const ratio = count / peak;
+              return (
+                <div key={DAY_KEYS[i]} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                  <span className="text-[10px] text-muted-foreground tabular-nums h-3">{count > 0 ? count : ""}</span>
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${Math.max(ratio * 100, count > 0 ? 8 : 3)}%` }}
+                    transition={{ duration: 0.7, delay: 0.28 + i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                    title={`${dayLabels[i]} — ${count}`}
+                    className={`w-full rounded-t-md min-h-[3px] ${
+                      ratio > 0.7 ? "bg-destructive" : ratio > 0.4 ? "bg-warning" : count > 0 ? "bg-primary/60" : "bg-secondary"
+                    }`}
+                  />
+                  <span className="text-[10px] text-muted-foreground">{dayLabels[i].slice(0, 1).toUpperCase()}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Day-of-week distribution chart */}
-      <div className="px-5 pb-3">
-        <p className="text-[10px] text-muted-foreground mb-2 flex items-center gap-1">
-          <BarChart3 className="w-3 h-3" /> Global absence distribution by day
-        </p>
-        <div className="flex items-end gap-1.5 h-12">
-          {globalDayDist.map((d, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${Math.max(d.pct, 4)}%` }}
-                transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }}
-                className={`w-full rounded-t ${
-                  d.pct > 70
-                    ? "bg-red-500"
-                    : d.pct > 40
-                    ? "bg-orange-500"
-                    : "bg-cyan-500/60"
-                }`}
-                style={{ minHeight: "2px" }}
-              />
-              <span className="text-[9px] text-muted-foreground">{DAYS_FR[i]}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Patterns */}
-      <div className="px-5 pb-5">
+      <div className="px-6 pb-6 flex-1">
         {isLoading ? (
-          <div className="space-y-2 mt-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-14 rounded-lg" />
-            ))}
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+          </div>
+        ) : !insights?.has_data ? (
+          <div className="text-center py-10 px-4 rounded-xl bg-secondary/50">
+            <Hourglass className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-sm font-medium">{t("ai.patternNoData")}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 max-w-[38ch] mx-auto">{t("ai.patternNoDataHint")}</p>
           </div>
         ) : patterns.length === 0 ? (
-          <div className="text-center py-6">
-            <Calendar className="w-8 h-8 text-green-400 mx-auto mb-2" />
-            <p className="text-xs font-medium text-green-400">No Patterns Detected</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Absences are randomly distributed — no suspicious patterns</p>
+          <div className="text-center py-10 px-4 rounded-xl bg-success/[0.07]">
+            <CalendarCheck2 className="w-8 h-8 text-success mx-auto mb-3" />
+            <p className="text-sm font-medium text-success">{t("ai.patternEmpty")}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 max-w-[38ch] mx-auto">{t("ai.patternEmptyHint")}</p>
           </div>
         ) : (
-          <div className="space-y-1.5 mt-2">
-            {patterns.map((p, i) => (
-              <motion.div
-                key={p.studentId}
-                initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.08 }}
-                className={`rounded-lg border p-3 ${getSeverityColor(p.severity)} bg-opacity-50`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="text-xs font-medium truncate">{p.studentName}</span>
-                    <span className="text-[10px] text-muted-foreground">{p.group}</span>
+          <ul className="space-y-2">
+            {patterns.map((p, i) => {
+              const tone = SEVERITY[p.severity];
+              return (
+                <motion.li
+                  key={p.student_id}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                  className="rounded-xl border border-border bg-card p-3.5"
+                >
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm font-medium truncate">{p.student_name}</span>
+                      <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded shrink-0">{p.group_name}</span>
+                    </div>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 ${tone.chip}`}>
+                      {severityLabel(p.severity)}
+                    </span>
                   </div>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
-                    {getSeverityLabel(p.severity)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] opacity-80">{p.pattern}</p>
-                  <div className="flex items-center gap-1">
-                    {DAYS_FR.map((d, di) => (
-                      <span
-                        key={d}
-                        className={`w-5 h-5 rounded text-[8px] flex items-center justify-center font-bold ${
-                          di === p.dayIndex
-                            ? p.severity === "critical"
-                              ? "bg-red-500 text-white"
-                              : p.severity === "warning"
-                              ? "bg-orange-500 text-white"
-                              : "bg-blue-500 text-white"
-                            : "bg-secondary/50 text-muted-foreground"
-                        }`}
-                      >
-                        {d[0]}
-                      </span>
-                    ))}
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] text-muted-foreground">
+                      {t("ai.patternDetail", { count: p.count, total: p.total, day: dayLabels[p.day_index] })}
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0" aria-hidden="true">
+                      {dayLabels.map((label, di) => (
+                        <span
+                          key={label}
+                          className={`w-5 h-5 rounded text-[8px] flex items-center justify-center font-bold ${
+                            di === p.day_index ? tone.chip : "bg-secondary text-muted-foreground"
+                          }`}
+                        >
+                          {label[0].toUpperCase()}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* Footer */}
-        {patterns.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>{patterns.filter((p) => p.severity === "critical").length} suspicious, {patterns.filter((p) => p.severity === "warning").length} notable patterns</span>
-            <span className="flex items-center gap-1">
-              <Scan className="w-3 h-3 text-orange-400" />
-              Analyzed {absencesRes?.data?.length ?? 0} records
-            </span>
-          </div>
+                </motion.li>
+              );
+            })}
+          </ul>
         )}
       </div>
-    </motion.div>
+    </motion.section>
   );
 };
 

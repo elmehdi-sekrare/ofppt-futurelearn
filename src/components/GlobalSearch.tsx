@@ -16,20 +16,22 @@ const GlobalSearch = () => {
   const navigate = useNavigate();
   const role = useAuthStore((s) => s.user?.role);
 
-  // Only fetch when admin
+  // Only fetch when an admin actually opens the palette (Ctrl+K), so the
+  // three lookups do not run on every page load.
   const { data: studentsRes } = useQuery({
     queryKey: ["students"],
     queryFn: () => api.getStudents(),
-    enabled: role === "admin",
+    enabled: open && role === "admin",
   });
   const { data: teachersRes } = useQuery({
     queryKey: ["teachers"],
     queryFn: () => api.getTeachers(),
-    enabled: role === "admin",
+    enabled: open && role === "admin",
   });
   const { data: groupsRes } = useQuery({
     queryKey: ["groups"],
     queryFn: () => api.getGroups(),
+    enabled: open,
   });
 
   const students = studentsRes?.data ?? [];
@@ -165,7 +167,7 @@ const GlobalSearch = () => {
                 <p className="text-[10px] uppercase text-muted-foreground font-semibold px-2 py-1">Teachers</p>
                 {results.teachers.map((t) => (
                   <button key={t.id} onClick={() => go("/dashboard/teachers")} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary text-sm text-left transition-colors">
-                    <Users className="w-4 h-4 text-blue-400" />
+                    <Users className="w-4 h-4 text-primary" />
                     <div>
                       <p className="font-medium">{t.first_name} {t.last_name}</p>
                       <p className="text-xs text-muted-foreground">{(t.subjects ?? []).join(", ") || "No subjects created"}</p>
@@ -181,7 +183,7 @@ const GlobalSearch = () => {
                 <p className="text-[10px] uppercase text-muted-foreground font-semibold px-2 py-1">Groups</p>
                 {results.groups.map((g) => (
                   <button key={g.id} onClick={() => go("/dashboard/groups")} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary text-sm text-left transition-colors">
-                    <BookOpen className="w-4 h-4 text-green-400" />
+                    <BookOpen className="w-4 h-4 text-success" />
                     <div>
                       <p className="font-medium">{g.name}</p>
                       <p className="text-xs text-muted-foreground">{g.level} · {g.student_count} students</p>

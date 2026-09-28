@@ -115,7 +115,7 @@ const WelcomeTour = () => {
           </div>
 
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={dismiss} className="border-white/[0.08]">
+            <Button variant="outline" onClick={dismiss} className="border-border">
               Skip Tour
             </Button>
             <Button onClick={next} className="gap-2 btn-glow border-0 text-primary-foreground">

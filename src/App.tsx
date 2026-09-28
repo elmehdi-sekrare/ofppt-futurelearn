@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useThemeStore } from "@/stores/themeStore";
+import "@/stores/themeStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useEffect } from "react";
 import LoginPage from "./pages/LoginPage";
@@ -13,7 +13,6 @@ import StudentDashboard from "./pages/StudentDashboard";
 import StudentsPage from "./pages/StudentsPage";
 import TeachersPage from "./pages/TeachersPage";
 import GroupsPage from "./pages/GroupsPage";
-import AdminRosterPage from "./pages/AdminRosterPage";
 import AdminAbsencesPage from "./pages/AdminAbsencesPage";
 import MarkAbsencePage from "./pages/MarkAbsencePage";
 import JustificationsPage from "./pages/JustificationsPage";
@@ -116,10 +115,11 @@ const ComingSoon = () => (
 );
 
 const App = () => {
-  const { theme } = useThemeStore();
+  // The theme class lives on <html> (see themeStore) so portalled dialogs
+  // and popovers inherit the same palette as the page.
   const routerBasename = import.meta.env.BASE_URL === "/" ? undefined : import.meta.env.BASE_URL.replace(/\/$/, "");
   return (
-  <div className={`${theme === "light" ? "light" : ""} bg-background text-foreground min-h-screen`}>
+  <div className="bg-background text-foreground min-h-screen">
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -149,9 +149,8 @@ const App = () => {
             <Route path="/dashboard/groups" element={
               <ProtectedRoute role="admin"><DashboardLayout role="admin"><GroupsPage /></DashboardLayout></ProtectedRoute>
             } />
-            <Route path="/dashboard/rosters" element={
-              <ProtectedRoute role="admin"><DashboardLayout role="admin"><AdminRosterPage /></DashboardLayout></ProtectedRoute>
-            } />
+            {/* Roster import now lives on the Groups page */}
+            <Route path="/dashboard/rosters" element={<Navigate to="/dashboard/groups" replace />} />
             <Route path="/dashboard/absences" element={
               <ProtectedRoute role="admin"><DashboardLayout role="admin"><AdminAbsencesPage /></DashboardLayout></ProtectedRoute>
             } />

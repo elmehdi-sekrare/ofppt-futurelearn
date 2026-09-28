@@ -19,12 +19,12 @@ import {
 
 const statusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
-  justified: "bg-emerald-500/10 text-emerald-400",
+  justified: "bg-success/10 text-success",
   unjustified: "bg-destructive/10 text-destructive",
 };
 
 const attendanceColors: Record<string, string> = {
-  present: "bg-emerald-500/10 text-emerald-400",
+  present: "bg-success/10 text-success",
   late: "bg-warning/10 text-warning",
   absent: "bg-destructive/10 text-destructive",
   excused: "bg-primary/10 text-primary",
@@ -179,7 +179,7 @@ const TeacherHistoryPage = () => {
           value={groupFilter}
           onValueChange={setGroupFilter}
           icon={<Filter className="w-4 h-4" />}
-          className="min-w-[130px]"
+          className="w-full sm:w-[130px] shrink-0"
           options={[{ label: "All Groups", value: "" }, ...myGroups.map((g) => ({ label: g, value: g }))]}
         />
         <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="input-glass w-auto" />
@@ -322,7 +322,7 @@ const TeacherHistoryPage = () => {
                     <p className="text-xs text-muted-foreground">Total Hours</p>
                   </div>
                   <div className="glass-panel p-3 text-center">
-                    <p className="text-xl font-display font-bold text-emerald-400">{studentStatusCounts.justified}</p>
+                    <p className="text-xl font-display font-bold text-success">{studentStatusCounts.justified}</p>
                     <p className="text-xs text-muted-foreground">Justified</p>
                   </div>
                   <div className="glass-panel p-3 text-center">

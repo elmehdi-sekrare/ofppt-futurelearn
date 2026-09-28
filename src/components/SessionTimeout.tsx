@@ -93,7 +93,7 @@ const SessionTimeout = () => {
               <Button onClick={resetTimer} className="flex-1 gap-2 btn-glow border-0 text-primary-foreground">
                 <RefreshCw className="w-4 h-4" /> Stay Logged In
               </Button>
-              <Button variant="outline" onClick={() => logout()} className="flex-1 gap-2 border-white/[0.08]">
+              <Button variant="outline" onClick={() => logout()} className="flex-1 gap-2 border-border">
                 <LogOut className="w-4 h-4" /> Logout
               </Button>
             </div>

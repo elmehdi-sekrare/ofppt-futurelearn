@@ -5,10 +5,10 @@ import { AlertTriangle, Info, CheckCircle, XCircle, X } from "lucide-react";
 import { useNotificationStore, type Notification } from "@/stores/notificationStore";
 
 const iconMap = {
-  info: <Info className="w-5 h-5 text-blue-400" />,
-  warning: <AlertTriangle className="w-5 h-5 text-yellow-400" />,
-  success: <CheckCircle className="w-5 h-5 text-green-400" />,
-  error: <XCircle className="w-5 h-5 text-red-400" />,
+  info: <Info className="w-5 h-5 text-primary" />,
+  warning: <AlertTriangle className="w-5 h-5 text-warning" />,
+  success: <CheckCircle className="w-5 h-5 text-success" />,
+  error: <XCircle className="w-5 h-5 text-destructive" />,
 };
 
 const borderMap = {

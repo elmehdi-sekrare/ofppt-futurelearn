@@ -34,4 +34,19 @@ class Student extends Model
     {
         return $this->hasMany(Absence::class);
     }
+
+    /**
+     * Preload the absence-hour sum and late count as aggregates so
+     * StudentResource does not run two extra queries per student.
+     */
+    public function scopeWithAttendanceTotals($query)
+    {
+        return $query
+            ->withSum(['absences as absent_hours' => fn ($q) => $q
+                ->where('attendance_status', 'absent')
+                ->where('status', '!=', 'voided')], 'hours')
+            ->withCount(['absences as late_records' => fn ($q) => $q
+                ->where('attendance_status', 'late')
+                ->where('status', '!=', 'voided')]);
+    }
 }

@@ -40,9 +40,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/chart', [DashboardController::class, 'chart']);
     Route::get('/dashboard/heatmap', [DashboardController::class, 'heatmap']);
     Route::get('/dashboard/risk', [DashboardController::class, 'risk']);
+    Route::get('/dashboard/insights', [DashboardController::class, 'insights']);
 
     // CRUD resources
     Route::delete('/students-bulk', [StudentController::class, 'bulkDestroy']);
+    Route::get('/students/{student}/stats', [StudentController::class, 'stats']);
     Route::apiResource('students', StudentController::class);
     Route::apiResource('teachers', TeacherController::class);
     Route::delete('/groups-bulk', [GroupController::class, 'bulkDestroy']);

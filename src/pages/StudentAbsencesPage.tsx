@@ -66,7 +66,7 @@ const StudentAbsencesPage = () => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="col-span-2 lg:col-span-1 glass-panel p-5 flex flex-col items-center justify-center">
           <div className="relative w-20 h-20 mb-2">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(222, 30%, 18%)" strokeWidth="6" />
+              <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(var(--border))" strokeWidth="6" />
               <circle cx="40" cy="40" r="34" fill="none" stroke={attendanceRate >= 80 ? "hsl(160, 70%, 45%)" : attendanceRate >= 60 ? "hsl(38, 92%, 55%)" : "hsl(0, 72%, 55%)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${attendanceRate * 2.136} 213.6`} className="transition-all duration-1000" />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
@@ -129,7 +129,7 @@ const StudentAbsencesPage = () => {
           value={statusFilter}
           onValueChange={setStatusFilter}
           icon={<Filter className="w-4 h-4" />}
-          className="min-w-[140px]"
+          className="w-full sm:w-[140px] shrink-0"
           options={[
             { label: "All Status", value: "" },
             { label: "Pending", value: "pending" },
@@ -141,7 +141,7 @@ const StudentAbsencesPage = () => {
           value={monthFilter}
           onValueChange={setMonthFilter}
           icon={<Calendar className="w-4 h-4" />}
-          className="min-w-[160px]"
+          className="w-full sm:w-[160px] shrink-0"
           options={[
             { label: "All Months", value: "" },
             ...months.map((m) => ({

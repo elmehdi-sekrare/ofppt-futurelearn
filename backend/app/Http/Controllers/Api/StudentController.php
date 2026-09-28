@@ -7,6 +7,8 @@ use App\Http\Resources\StudentResource;
 use App\Mail\WelcomeMail;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\SchoolEmail;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,8 +23,85 @@ class StudentController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $students = Student::with(['user', 'group'])->get();
+        $students = Student::with(['user', 'group'])->withAttendanceTotals()->get();
         return StudentResource::collection($students);
+    }
+
+    /** GET /api/students/{id}/stats */
+    public function stats(Request $request, Student $student)
+    {
+        $user = $request->user();
+
+        if ($user->role === 'student' && (int) $user->student->id !== (int) $student->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($user->role === 'teacher') {
+            if (!$user->teacher) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+            $allowedGroupIds = $user->teacher->groups()->where('groups.status', 'active')->pluck('groups.id');
+            if (!$student->groups()->whereIn('groups.id', $allowedGroupIds)->exists()) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+        }
+
+        $student->load(['user', 'group']);
+
+        $records = $student->absences()->with('group')->where('status', '!=', 'voided')->get();
+        $absent = $records->where('attendance_status', 'absent');
+        $late = $records->where('attendance_status', 'late');
+
+        $absenceHours = (float) $absent->sum('hours');
+        $justifiedHours = (float) $absent->where('status', 'justified')->sum('hours');
+        $unjustifiedHours = (float) $absent->where('status', 'unjustified')->sum('hours');
+        $pendingHours = (float) $absent->where('status', 'pending')->sum('hours');
+
+        // Attendance rate across every session the student was recorded in.
+        $sessions = $records->count();
+        $attended = $records->whereIn('attendance_status', ['present', 'late', 'excused'])->count();
+        $attendanceRate = $sessions > 0 ? round(($attended / $sessions) * 100, 1) : 100.0;
+
+        // Last 6 months of absence hours, oldest first, for the trend chart.
+        $monthly = collect(range(5, 0))->map(function (int $offset) use ($absent) {
+            $month = now()->startOfMonth()->subMonths($offset);
+            $prefix = $month->format('Y-m');
+            return [
+                'month' => $prefix,
+                'label' => $month->format('M'),
+                'hours' => (float) $absent->filter(fn ($record) => str_starts_with((string) $record->date, $prefix))->sum('hours'),
+            ];
+        })->values();
+
+        // Which weekday the student misses most often.
+        $byWeekday = $absent->groupBy(fn ($record) => Carbon::parse($record->date)->format('l'))
+            ->map(fn ($group) => $group->count())
+            ->sortDesc();
+
+        return response()->json(['data' => [
+            'student' => new StudentResource($student),
+            'absence_hours' => $absenceHours,
+            'justified_hours' => $justifiedHours,
+            'unjustified_hours' => $unjustifiedHours,
+            'pending_hours' => $pendingHours,
+            'absence_count' => $absent->count(),
+            'late_count' => $late->count(),
+            'late_minutes' => (int) $late->sum('late_minutes'),
+            'session_count' => $sessions,
+            'attendance_rate' => $attendanceRate,
+            'threshold_hours' => 48,
+            'monthly' => $monthly,
+            'worst_weekday' => $byWeekday->keys()->first(),
+            'recent' => $records->sortByDesc('date')->take(10)->values()->map(fn ($record) => [
+                'id' => $record->id,
+                'date' => Carbon::parse($record->date)->toDateString(),
+                'hours' => (float) $record->hours,
+                'attendance_status' => $record->attendance_status,
+                'status' => $record->status,
+                'late_minutes' => (int) $record->late_minutes,
+                'group_name' => optional($record->group)->name ?? '',
+            ]),
+        ]]);
     }
 
     /** POST /api/students */
@@ -41,7 +120,7 @@ class StudentController extends Controller
         ]);
 
         return DB::transaction(function () use ($data) {
-            $email = $this->generateSchoolEmail();
+            $email = SchoolEmail::generate($data['first_name'], $data['last_name']);
             $defaultPassword = 'password123';
 
             $user = User::create([
@@ -138,15 +217,5 @@ class StudentController extends Controller
         });
 
         return response()->json(['data' => ['deleted' => $deleted]]);
-    }
-
-    private function generateSchoolEmail(): string
-    {
-        do {
-            $code = 'f' . random_int(10000, 99999);
-            $email = $code . '@ofppt.com';
-        } while (User::where('email', $email)->exists());
-
-        return $email;
     }
 }

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 750" role="img" aria-label="OFPPT — La voie de l'avenir">
+  <defs>
+    <radialGradient id="disc" cx="50%" cy="36%" r="74%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="72%" stop-color="#f6f7f8"/>
+      <stop offset="100%" stop-color="#e2e5e9"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="375" cy="375" r="366" fill="url(#disc)"/>
+  <circle cx="375" cy="375" r="366" fill="none" stroke="#d6dade" stroke-width="5"/>
+
+  <!-- Three interlocking diamond outlines: green, grey, blue.
+       Each is a 248px-wide rhombus centred on y=250, spaced 105px apart. -->
+  <g fill="none" stroke-width="44" stroke-linejoin="miter">
+    <path d="M270 126 L394 250 L270 374 L146 250 Z" stroke="#159a52"/>
+    <path d="M375 126 L499 250 L375 374 L251 250 Z" stroke="#8b96a2"/>
+    <path d="M480 126 L604 250 L480 374 L356 250 Z" stroke="#1b5aa8"/>
+  </g>
+
+  <text x="375" y="505" text-anchor="middle" font-family="Times New Roman, Georgia, serif" font-size="132" font-weight="700" letter-spacing="3" fill="#1b1b1b">OFPPT</text>
+  <text x="375" y="577" text-anchor="middle" font-family="Times New Roman, Georgia, serif" font-size="54" font-style="italic" fill="#1b5aa8">La voie de l'avenir</text>
+</svg>

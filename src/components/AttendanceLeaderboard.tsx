@@ -68,7 +68,7 @@ const AttendanceLeaderboard = () => {
   }, [studentsRes, currentUser]);
 
   const getRankIcon = (index: number) => {
-    if (index === 0) return <Crown className="w-4 h-4 text-yellow-400" />;
+    if (index === 0) return <Crown className="w-4 h-4 text-warning" />;
     if (index === 1) return <Medal className="w-4 h-4 text-gray-300" />;
     if (index === 2) return <Medal className="w-4 h-4 text-amber-600" />;
     return <span className="text-[10px] font-bold text-muted-foreground w-4 text-center">#{index + 1}</span>;
@@ -94,7 +94,7 @@ const AttendanceLeaderboard = () => {
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-yellow-500/20 to-amber-500/20 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-yellow-400" />
+              <Trophy className="w-5 h-5 text-warning" />
             </div>
             <div>
               <h3 className="font-display font-semibold text-sm">Leaderboard</h3>
@@ -166,7 +166,7 @@ const AttendanceLeaderboard = () => {
 
                 {/* Streak */}
                 {student.streak > 0 && (
-                  <div className="flex items-center gap-0.5 text-orange-400">
+                  <div className="flex items-center gap-0.5 text-warning">
                     <Flame className="w-3 h-3" />
                     <span className="text-[10px] font-bold">{student.streak}d</span>
                   </div>
@@ -181,10 +181,10 @@ const AttendanceLeaderboard = () => {
                       transition={{ duration: 0.8, delay: 0.7 + i * 0.06 }}
                       className={`h-full rounded-full ${
                         student.attendancePct >= 90
-                          ? "bg-green-500"
+                          ? "bg-success"
                           : student.attendancePct >= 70
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
+                          ? "bg-warning"
+                          : "bg-destructive"
                       }`}
                     />
                   </div>
@@ -199,7 +199,7 @@ const AttendanceLeaderboard = () => {
         {ranked.length > 0 && (
           <div className="mt-4 pt-3 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground">
             <div className="flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-green-400" />
+              <TrendingUp className="w-3 h-3 text-success" />
               Top student: {ranked[0]?.absenceHours ?? 0}h absent
             </div>
             <span>{ranked.filter((r) => r.attendancePct >= 90).length} students above 90%</span>

@@ -144,6 +144,26 @@ class TeacherRosterAndModuleTest extends TestCase
             ->assertJsonPath('message', "Group {$group->name} cannot be permanently deleted while it has students or attendance history. Archive it instead.");
     }
 
+    public function test_teacher_email_uses_firstname_lastname_and_stays_unique(): void
+    {
+        Mail::fake();
+        Sanctum::actingAs($this->admin());
+
+        $this->postJson('/api/teachers', ['first_name' => 'Youssef', 'last_name' => 'Benali'])
+            ->assertOk()
+            ->assertJsonPath('credentials.email', 'youssef.benali@ofppt.com');
+
+        // Accents and spaces are stripped, not encoded.
+        $this->postJson('/api/teachers', ['first_name' => 'Zinéb', 'last_name' => 'El Amrani'])
+            ->assertOk()
+            ->assertJsonPath('credentials.email', 'zineb.elamrani@ofppt.com');
+
+        // A second teacher with the same name gets a numbered address.
+        $this->postJson('/api/teachers', ['first_name' => 'Youssef', 'last_name' => 'Benali'])
+            ->assertOk()
+            ->assertJsonPath('credentials.email', 'youssef.benali2@ofppt.com');
+    }
+
     public function test_admin_can_create_assign_and_unassign_teacher_groups_without_subject(): void
     {
         Mail::fake();

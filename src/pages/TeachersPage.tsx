@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Plus, Edit2, Trash2, X, Users, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import SearchField from "@/components/SearchField";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +15,7 @@ import { StyledSelect } from "@/components/ui/styled-select";
 import type { Teacher } from "@/types/api";
 
 const TeachersPage = () => {
+  const { t: tr } = useTranslation();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
@@ -49,22 +52,22 @@ const TeachersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
       if (!vars.id && res?.credentials) {
         showSuccess({
-          title: "Teacher Added",
-          description: `Login: ${res.credentials.email} | Password: ${res.credentials.password}`,
+          title: tr("teachers.added"),
+          description: `${tr("auth.email")}: ${res.credentials.email} · ${tr("auth.password")}: ${res.credentials.password}`,
           icon: "user-plus",
-          accentColor: "#8b5cf6",
+          accentColor: "#1b5aa8",
         });
       } else {
         showSuccess({
-          title: vars.id ? "Teacher Updated" : "Teacher Added",
-          description: vars.id ? "Teacher details saved successfully" : "New teacher registered",
+          title: vars.id ? tr("teachers.updated") : tr("teachers.added"),
+          description: vars.id ? tr("teachers.updatedDesc") : tr("teachers.registered"),
           icon: vars.id ? "check" : "user-plus",
-          accentColor: vars.id ? "#10b981" : "#8b5cf6",
+          accentColor: vars.id ? "#159a52" : "#1b5aa8",
         });
       }
       setDialogOpen(false);
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: tr("app.error"), description: err.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -73,13 +76,13 @@ const TeachersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
       setDeleteConfirm(null);
       showSuccess({
-        title: "Teacher Deleted",
-        description: "Teacher removed from the system",
+        title: tr("teachers.deleted"),
+        description: tr("teachers.deletedDesc"),
         icon: "trash",
         accentColor: "#ef4444",
       });
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: tr("app.error"), description: err.message, variant: "destructive" }),
   });
 
   const filtered = useMemo(() => {
@@ -106,7 +109,7 @@ const TeachersPage = () => {
 
   const handleSave = () => {
     if (!form.firstName.trim() || !form.lastName.trim()) {
-      toast({ title: "Validation Error", description: "First name and last name are required", variant: "destructive" });
+      toast({ title: tr("app.error"), description: tr("teachers.requiredFields"), variant: "destructive" });
       return;
     }
     const payload = { first_name: form.firstName, last_name: form.lastName, phone: form.phone, group_ids: groupIds };
@@ -126,27 +129,26 @@ const TeachersPage = () => {
     <>
     {NotificationComponent}
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold">Teachers</h1>
-          <p className="text-muted-foreground text-sm mt-1">{teachers.length} teachers registered</p>
+          <p className="eyebrow">{tr("nav.teachers")}</p>
+          <h1 className="page-title mt-2.5">{tr("teachers.title")}</h1>
+          <span className="brand-rule" />
+          <p className="text-muted-foreground mt-4">{tr("teachers.registeredCount", { count: teachers.length })}</p>
         </div>
         <Button onClick={openAdd} className="btn-glow text-primary-foreground border-0 gap-2">
-          <Plus className="w-4 h-4" /> Add Teacher
+          <Plus className="w-4 h-4" /> {tr("teachers.add")}
         </Button>
       </motion.div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search teachers..." className="pl-10 input-glass" />
-        </div>
+        <SearchField value={search} onChange={setSearch} placeholder={tr("teachers.search")} className="flex-1 basis-[22rem]" />
         <StyledSelect
           value={subjectFilter}
           onValueChange={setSubjectFilter}
           icon={<Filter className="w-4 h-4" />}
-          className="min-w-[180px]"
-          options={[{ label: "All Subjects", value: "" }, ...subjectOptions.map((subject) => ({ label: subject, value: subject }))]}
+          className="w-full sm:w-[180px] shrink-0"
+          options={[{ label: tr("teachers.allSubjects"), value: "" }, ...subjectOptions.map((subject) => ({ label: subject, value: subject }))]}
         />
       </div>
 
@@ -155,11 +157,11 @@ const TeachersPage = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/30">
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden sm:table-cell">Subject</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Email</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Groups</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+                <th className="th-label">{tr("teachers.tableTeacher")}</th>
+                <th className="th-label hidden sm:table-cell">{tr("teachers.subject")}</th>
+                <th className="th-label hidden md:table-cell">{tr("auth.email")}</th>
+                <th className="th-label hidden lg:table-cell">{tr("teachers.tableGroups")}</th>
+                <th className="th-label text-right">{tr("app.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -178,7 +180,7 @@ const TeachersPage = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell">
-                      {(t.subjects ?? []).length > 0 ? t.subjects?.join(", ") : "No subjects created"}
+                      {(t.subjects ?? []).length > 0 ? t.subjects?.join(", ") : tr("teachers.noSubjects")}
                     </td>
                     <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{t.email}</td>
                     <td className="py-3 px-4 hidden lg:table-cell">
@@ -186,14 +188,14 @@ const TeachersPage = () => {
                         {t.groups_assigned.map((g) => (
                           <span key={g} className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">{g}</span>
                         ))}
-                        {t.groups_assigned.length === 0 && <span className="text-xs text-muted-foreground">None</span>}
+                        {t.groups_assigned.length === 0 && <span className="text-xs text-muted-foreground">{tr("teachers.noneAssigned")}</span>}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
                       {deleteConfirm === t.id ? (
                         <div className="flex items-center gap-1 justify-end">
-                          <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(t.id)} className="h-7 text-xs">Confirm</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(null)} className="h-7 text-xs">Cancel</Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(t.id)} className="h-7 text-xs">{tr("app.confirm")}</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(null)} className="h-7 text-xs">{tr("app.cancel")}</Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 justify-end">
@@ -210,8 +212,8 @@ const TeachersPage = () => {
           {filtered.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No teachers found</p>
-              <p className="text-sm">Try adjusting your search or filters</p>
+              <p className="font-medium">{tr("teachers.empty")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{tr("teachers.emptyHint")}</p>
             </div>
           )}
         </div>
@@ -224,24 +226,24 @@ const TeachersPage = () => {
               <div onClick={() => setDialogOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.5)' }} />
               <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 9999, width: '90vw', maxWidth: '32rem' }} className="bg-card rounded-xl border border-border p-6 space-y-5 shadow-2xl">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-display font-semibold text-lg">{editing ? "Edit Teacher" : "Add Teacher"}</h2>
+                  <h2 className="font-display font-semibold text-lg">{editing ? tr("teachers.edit") : tr("teachers.add")}</h2>
                   <button onClick={() => setDialogOpen(false)} className="p-1 hover:bg-secondary rounded-md text-muted-foreground"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">First Name</label>
+                    <label className="text-sm font-medium">{tr("teachers.firstName")}</label>
                     <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="input-glass" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">Last Name</label>
+                    <label className="text-sm font-medium">{tr("teachers.lastName")}</label>
                     <Input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="input-glass" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">Phone</label>
+                    <label className="text-sm font-medium">{tr("teachers.phone")}</label>
                     <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-glass" />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm text-muted-foreground">Assigned Groups</label>
+                    <label className="text-sm font-medium">{tr("teachers.assignedGroups")}</label>
                     <p className="text-xs text-muted-foreground">Choose the active groups this teacher can access. Subjects are managed by the teacher through My Modules.</p>
                     <div className="max-h-32 overflow-y-auto rounded-lg border border-border/60 p-2 space-y-1">
                       {groups.length === 0 ? <p className="text-xs text-muted-foreground p-2">Create groups first.</p> : groups.map((group) => (
@@ -254,9 +256,9 @@ const TeachersPage = () => {
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                  <Button variant="ghost" onClick={() => setDialogOpen(false)}>{tr("app.cancel")}</Button>
                   <Button onClick={handleSave} disabled={saveMutation.isPending} className="btn-glow text-primary-foreground border-0">
-                    {saveMutation.isPending ? "Saving..." : editing ? "Update" : "Add"} Teacher
+                    {saveMutation.isPending ? tr("app.saving") : editing ? tr("app.update") : tr("app.add")}
                   </Button>
                 </div>
               </div>

@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { getDateLocale } from "@/i18n/i18n";
 
 interface Props {
   title: string;
@@ -12,31 +14,33 @@ interface Props {
 }
 
 const StatCard = ({ title, value, suffix = "", icon, trend, delay = 0, color }: Props) => {
+  const { i18n } = useTranslation();
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
+    <motion.article
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4, ease: "easeOut" }}
+      transition={{ delay, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
       className="stat-card group"
       style={color ? { ["--stat-color" as string]: color } : undefined}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+      <div className="flex items-start justify-between gap-2 mb-4">
+        <div className="p-2 rounded-lg bg-primary/[0.08] text-primary transition-colors group-hover:bg-primary/[0.14]">
           {icon}
         </div>
         {trend && (
-          <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full tabular-nums ${
             trend.positive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
           }`}>
             {trend.positive ? "+" : ""}{trend.value}%
           </span>
         )}
       </div>
-      <div className="space-y-1">
-        <p className="text-2xl font-display font-bold">{value.toLocaleString()}{suffix}</p>
-        <p className="text-sm text-muted-foreground">{title}</p>
-      </div>
-    </motion.div>
+      <p className="text-[1.75rem] font-display font-bold tabular-nums leading-none">
+        {value.toLocaleString(getDateLocale(i18n.language))}{suffix}
+      </p>
+      <p className="text-[13px] text-muted-foreground mt-1.5 leading-snug">{title}</p>
+    </motion.article>
   );
 };
 

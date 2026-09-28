@@ -1,16 +1,20 @@
 import { motion } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useThemeStore } from "@/stores/themeStore";
 
 const ThemeToggle = () => {
+  const { t } = useTranslation();
   const { theme, toggle } = useThemeStore();
   const isDark = theme === "dark";
+  const label = isDark ? t("layout.toLight") : t("layout.toDark");
 
   return (
     <button
       onClick={toggle}
       className="relative p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-      title={`Switch to ${isDark ? "light" : "dark"} mode`}
+      title={label}
+      aria-label={label}
     >
       <motion.div
         key={theme}

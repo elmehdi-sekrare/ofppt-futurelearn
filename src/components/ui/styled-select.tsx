@@ -51,7 +51,7 @@ export function StyledSelect({
     >
       <SelectTrigger
         className={cn(
-          "relative bg-secondary/50 border-white/[0.08] text-foreground focus:ring-primary/30",
+          "relative bg-secondary/50 border-border text-foreground focus:ring-primary/30",
           icon && "pl-9",
           className,
         )}
@@ -63,7 +63,7 @@ export function StyledSelect({
         )}
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="bg-popover border-white/[0.08]">
+      <SelectContent className="bg-popover border-border">
         {options.map((opt) => (
           <SelectItem
             key={opt.value === "" ? EMPTY : opt.value}

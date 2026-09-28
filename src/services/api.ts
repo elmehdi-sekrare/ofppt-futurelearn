@@ -19,6 +19,9 @@ import type {
   ImportPreview,
   ModuleImportRow,
   StudentImportRow,
+  StudentStats,
+  HeatmapData,
+  DashboardInsights,
 } from "@/types/api";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
@@ -119,7 +122,11 @@ export const api = {
   },
 
   getDashboardHeatmap() {
-    return request<ApiResponse<{ week: string; days: number[] }[]>>("/dashboard/heatmap");
+    return request<ApiResponse<HeatmapData>>("/dashboard/heatmap");
+  },
+
+  getDashboardInsights() {
+    return request<ApiResponse<DashboardInsights>>("/dashboard/insights");
   },
 
   getRiskStudents() {
@@ -129,6 +136,10 @@ export const api = {
   // ─── Students ──────────────────────────────────────
   getStudents() {
     return request<ApiResponse<Student[]>>("/students");
+  },
+
+  getStudentStats(studentId: number) {
+    return request<ApiResponse<StudentStats>>(`/students/${studentId}/stats`);
   },
 
   createStudent(data: CreateStudentPayload) {

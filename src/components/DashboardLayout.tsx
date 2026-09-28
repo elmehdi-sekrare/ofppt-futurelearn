@@ -9,7 +9,6 @@ import {
 import Breadcrumbs from "./Breadcrumbs";
 import ScrollToTop from "./ScrollToTop";
 import SessionTimeout from "./SessionTimeout";
-import WelcomeTour from "./WelcomeTour";
 import NotificationPanel from "./NotificationPanel";
 import NotificationPopup from "./NotificationPopup";
 import GlobalSearch from "./GlobalSearch";
@@ -39,7 +38,6 @@ const adminNav: NavItem[] = [
   { key: "nav.students", path: "/dashboard/students", icon: <GraduationCap className="w-5 h-5" /> },
   { key: "nav.teachers", path: "/dashboard/teachers", icon: <Users className="w-5 h-5" /> },
   { key: "nav.groups", path: "/dashboard/groups", icon: <BookOpen className="w-5 h-5" /> },
-  { key: "nav.rosters", path: "/dashboard/rosters", icon: <Users className="w-5 h-5" /> },
   { key: "nav.absences", path: "/dashboard/absences", icon: <ClipboardList className="w-5 h-5" /> },
   { key: "nav.justifications", path: "/dashboard/justifications", icon: <FileCheck className="w-5 h-5" /> },
   { key: "nav.risk", path: "/dashboard/risk", icon: <ShieldAlert className="w-5 h-5" /> },
@@ -78,8 +76,10 @@ const DashboardLayout = ({ children, role }: Props) => {
   const { user, logout } = useAuthStore();
 
   const navItems = role === "admin" ? adminNav : role === "teacher" ? teacherNav : studentNav;
-  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
-  const displayName = user ? `${user.first_name} ${user.last_name}` : roleLabel;
+  // "admin" -> "Admin", used to build the layout.roleAdmin translation key
+  const roleKey = role.charAt(0).toUpperCase() + role.slice(1);
+  const displayName = user ? `${user.first_name} ${user.last_name}` : t(`layout.role${roleKey}`);
+  const initials = user ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase() : "";
 
   const handleLogout = async () => {
     await logout();
@@ -99,31 +99,38 @@ const DashboardLayout = ({ children, role }: Props) => {
       } transition-all duration-300`}
     >
       {/* Header */}
-      <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-        <div className="w-9 h-9 rounded-xl btn-glow flex items-center justify-center shrink-0">
-          <GraduationCap className="w-5 h-5 text-primary-foreground" />
-        </div>
+      <div className="px-4 py-5 flex items-center gap-3 border-b border-sidebar-border">
+        <img
+          src={`${import.meta.env.BASE_URL}ofppt-logo.svg`}
+          alt="OFPPT"
+          width={38}
+          height={38}
+          className="rounded-full bg-white shadow-sm ring-1 ring-white/20 shrink-0"
+          style={{ width: 38, height: 38 }}
+        />
         {(!collapsed || mobile) && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="overflow-hidden">
-            <p className="font-display font-bold text-sm gradient-text leading-tight">OFPPT</p>
-            <p className="text-[10px] text-muted-foreground">Smart Attendance</p>
+            <p className="font-display font-bold text-[0.95rem] leading-none tracking-tight text-sidebar-accent-foreground">OFPPT</p>
+            <p className="text-[10px] uppercase tracking-[0.13em] text-sidebar-foreground/70 truncate mt-1.5">{t(`layout.role${roleKey}`)}</p>
           </motion.div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto" aria-label={t(`layout.role${roleKey}`)}>
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
               key={item.path}
               to={item.path}
+              aria-current={isActive ? "page" : undefined}
+              title={collapsed && !mobile ? t(item.key) : undefined}
               onClick={() => mobile && setMobileOpen(false)}
               className={`nav-link ${isActive ? "active" : ""} ${collapsed && !mobile ? "justify-center px-2" : ""}`}
             >
               {item.icon}
-              {(!collapsed || mobile) && <span className="text-sm">{t(item.key)}</span>}
+              {(!collapsed || mobile) && <span>{t(item.key)}</span>}
             </Link>
           );
         })}
@@ -137,12 +144,12 @@ const DashboardLayout = ({ children, role }: Props) => {
             className="nav-link w-full justify-center lg:justify-start"
           >
             <ChevronLeft className={`w-5 h-5 transition-transform ${collapsed ? "rotate-180" : ""}`} />
-            {!collapsed && <span className="text-sm">{t("layout.collapse")}</span>}
+            {!collapsed && <span>{t("layout.collapse")}</span>}
           </button>
         )}
-        <button onClick={handleLogout} className="nav-link w-full text-destructive hover:bg-destructive/10">
+        <button onClick={handleLogout} className="nav-link w-full hover:bg-destructive/20 hover:text-white">
           <LogOut className="w-5 h-5" />
-          {(!collapsed || mobile) && <span className="text-sm">{t("layout.logout")}</span>}
+          {(!collapsed || mobile) && <span>{t("layout.logout")}</span>}
         </button>
       </div>
     </motion.aside>
@@ -150,6 +157,7 @@ const DashboardLayout = ({ children, role }: Props) => {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      <a href="#main-content" className="skip-link">{t("layout.skipToContent")}</a>
       <Sidebar />
       <NotificationPopup />
       <GlobalSearch />
@@ -157,7 +165,6 @@ const DashboardLayout = ({ children, role }: Props) => {
       <QuickActions role={role} />
       <ScrollToTop />
       <SessionTimeout />
-      <WelcomeTour />
 
       {/* Mobile overlay */}
       <AnimatePresence>
@@ -178,32 +185,35 @@ const DashboardLayout = ({ children, role }: Props) => {
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-16 border-b border-border flex items-center justify-between px-4 lg:px-6 shrink-0 bg-card/30 backdrop-blur-md relative z-[102]">
+        <header className="h-[4.25rem] border-b border-border flex items-center justify-between px-4 lg:px-6 shrink-0 bg-card relative z-[102]">
           <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} className="lg:hidden text-muted-foreground hover:text-foreground">
+            <button onClick={() => setMobileOpen(true)} aria-label={t("layout.searchPlaceholder")} className="lg:hidden p-1.5 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
               <Menu className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="font-display font-semibold text-sm">{displayName}</h2>
-              <p className="text-xs text-muted-foreground">{t(`layout.role${role.charAt(0).toUpperCase() + role.slice(1)}`)} · {t("app.shortName")}</p>
+              <h2 className="font-display font-semibold text-[0.95rem] leading-tight">{displayName}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{t(`layout.role${roleKey}`)} · {t("app.shortName")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { const e = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }); window.dispatchEvent(e); }}
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
             >
               <Search className="w-3.5 h-3.5" />
               <span>{t("layout.searchPlaceholder")}</span>
-              <kbd className="ml-2 px-1.5 py-0.5 rounded border border-border bg-muted font-mono text-[10px]">Ctrl+K</kbd>
+              <kbd className="ml-3 px-1.5 py-0.5 rounded border border-border bg-card font-mono text-[10px]">Ctrl+K</kbd>
             </button>
             <LanguageSwitcher />
             <ThemeToggle />
             <NotificationPanel />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="w-8 h-8 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors">
-                  <UserCircle className="w-5 h-5 text-muted-foreground" />
+                <button
+                  aria-label={t("layout.accountSettings")}
+                  className="w-9 h-9 rounded-full bg-primary/10 text-primary hover:bg-primary/[0.18] flex items-center justify-center transition-colors text-[13px] font-semibold"
+                >
+                  {initials || <UserCircle className="w-5 h-5" />}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -226,7 +236,7 @@ const DashboardLayout = ({ children, role }: Props) => {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main id="main-content" className="flex-1 overflow-y-auto p-4 lg:p-6 xl:p-8 pb-24 lg:pb-24 xl:pb-24">
           <Breadcrumbs />
           <AnimatePresence mode="wait">
             <motion.div

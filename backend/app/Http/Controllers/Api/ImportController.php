@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\ImportFileReader;
+use App\Services\SchoolEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -77,7 +78,7 @@ class ImportController extends Controller
 
                 if ($action !== 'import') throw new RuntimeException('This student is new and must be imported or skipped.');
                 $password = Str::random(16);
-                $email = $this->schoolEmail();
+                $email = SchoolEmail::generate($firstName, $lastName);
                 $user = User::create([
                     'first_name' => $firstName,
                     'last_name' => $lastName,
@@ -165,11 +166,5 @@ class ImportController extends Controller
             && $batch->type === $type
             && !$batch->committed_at
             && $batch->expires_at->isFuture();
-    }
-
-    private function schoolEmail(): string
-    {
-        do { $email = 'f' . random_int(10000, 99999) . '@ofppt.com'; } while (User::where('email', $email)->exists());
-        return $email;
     }
 }

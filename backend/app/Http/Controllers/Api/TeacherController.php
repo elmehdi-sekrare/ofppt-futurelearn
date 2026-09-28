@@ -7,6 +7,7 @@ use App\Http\Resources\TeacherResource;
 use App\Mail\WelcomeMail;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\SchoolEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -41,7 +42,7 @@ class TeacherController extends Controller
         ]);
 
         return DB::transaction(function () use ($data) {
-            $email = $this->generateSchoolEmail();
+            $email = $this->generateSchoolEmail($data['first_name'], $data['last_name']);
             $defaultPassword = 'password123';
 
             $user = User::create([
@@ -113,13 +114,8 @@ class TeacherController extends Controller
         return response()->noContent();
     }
 
-    private function generateSchoolEmail(): string
+    private function generateSchoolEmail(string $firstName, string $lastName): string
     {
-        do {
-            $code = 'f' . random_int(10000, 99999);
-            $email = $code . '@ofppt.com';
-        } while (User::where('email', $email)->exists());
-
-        return $email;
+        return SchoolEmail::generate($firstName, $lastName);
     }
 }

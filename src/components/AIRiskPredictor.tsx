@@ -1,213 +1,146 @@
-import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Brain, AlertTriangle, TrendingUp, TrendingDown, Shield, Zap } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Activity, Hourglass, ShieldCheck, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { InsightStudent, RiskLevel } from "@/types/api";
 
-const MAX_HOURS = 60;
+const TONE: Record<RiskLevel, { bar: string; text: string; ring: string }> = {
+  critical: { bar: "bg-destructive", text: "text-destructive", ring: "stroke-destructive" },
+  high: { bar: "bg-warning", text: "text-warning", ring: "stroke-warning" },
+  watch: { bar: "bg-primary", text: "text-primary", ring: "stroke-primary" },
+  ok: { bar: "bg-success", text: "text-success", ring: "stroke-success" },
+};
 
-interface RiskStudent {
-  id: number;
-  name: string;
-  group: string;
-  hours: number;
-  risk: number; // 0-100
-  trend: "rising" | "stable" | "declining";
-  predictedBreachDate: string | null;
-  weeklyRate: number;
-}
+/** Compact score ring — reads faster than a number alone. */
+const ScoreRing = ({ score, level }: { score: number; level: RiskLevel }) => {
+  const r = 17;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative w-11 h-11 shrink-0">
+      <svg viewBox="0 0 40 40" className="w-11 h-11 -rotate-90">
+        <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-secondary" />
+        <motion.circle
+          cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" strokeLinecap="round"
+          className={TONE[level].ring}
+          initial={{ strokeDasharray: c, strokeDashoffset: c }}
+          animate={{ strokeDashoffset: c - (c * score) / 100 }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </svg>
+      <span className={`absolute inset-0 flex items-center justify-center text-[12px] font-bold tabular-nums ${TONE[level].text}`}>
+        {score}
+      </span>
+    </div>
+  );
+};
 
 const AIRiskPredictor = () => {
-  const { data: studentsRes, isLoading } = useQuery({
-    queryKey: ["students"],
-    queryFn: () => api.getStudents(),
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard", "insights"],
+    queryFn: () => api.getDashboardInsights(),
+    staleTime: 60_000,
   });
 
-  const riskStudents = useMemo<RiskStudent[]>(() => {
-    const students = studentsRes?.data ?? [];
-    if (!students.length) return [];
+  const insights = data?.data;
+  const students: InsightStudent[] = insights?.students ?? [];
 
-    // Simulate AI risk scoring based on available data
-    const now = new Date();
-    const semesterStart = new Date(now.getFullYear(), now.getMonth() >= 8 ? 8 : 1, 1);
-    const weeksElapsed = Math.max(1, Math.floor((now.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)));
-    const semesterEnd = new Date(now.getFullYear(), now.getMonth() >= 8 ? 11 : 5, 30);
-    const weeksRemaining = Math.max(1, Math.floor((semesterEnd.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000)));
-
-    return students
-      .map((s) => {
-        const hours = s.total_absence_hours ?? 0;
-        const weeklyRate = hours / weeksElapsed;
-        const predictedTotal = hours + weeklyRate * weeksRemaining;
-        const riskRaw = Math.min(100, (predictedTotal / MAX_HOURS) * 100);
-        // Add weight for already high hours
-        const currentPctWeight = (hours / MAX_HOURS) * 40;
-        const risk = Math.min(100, Math.round(riskRaw * 0.6 + currentPctWeight));
-
-        const breachWeeks = weeklyRate > 0 ? (MAX_HOURS - hours) / weeklyRate : null;
-        const predictedBreachDate =
-          breachWeeks && breachWeeks > 0 && breachWeeks < weeksRemaining
-            ? new Date(now.getTime() + breachWeeks * 7 * 24 * 60 * 60 * 1000).toLocaleDateString("fr-FR", {
-                day: "numeric",
-                month: "short",
-              })
-            : null;
-
-        const trend: "rising" | "stable" | "declining" =
-          weeklyRate > 3 ? "rising" : weeklyRate > 1 ? "stable" : "declining";
-
-        return {
-          id: s.id,
-          name: `${s.first_name} ${s.last_name}`,
-          group: s.group_name,
-          hours,
-          risk,
-          trend,
-          predictedBreachDate,
-          weeklyRate: Math.round(weeklyRate * 10) / 10,
-        };
-      })
-      .filter((s) => s.risk > 25)
-      .sort((a, b) => b.risk - a.risk)
-      .slice(0, 5);
-  }, [studentsRes]);
-
-  const getRiskColor = (risk: number) => {
-    if (risk >= 80) return "text-red-400";
-    if (risk >= 60) return "text-orange-400";
-    if (risk >= 40) return "text-yellow-400";
-    return "text-blue-400";
-  };
-
-  const getRiskBg = (risk: number) => {
-    if (risk >= 80) return "bg-red-500";
-    if (risk >= 60) return "bg-orange-500";
-    if (risk >= 40) return "bg-yellow-500";
-    return "bg-blue-500";
-  };
-
-  const getRiskLabel = (risk: number) => {
-    if (risk >= 80) return "CRITICAL";
-    if (risk >= 60) return "HIGH";
-    if (risk >= 40) return "MEDIUM";
-    return "LOW";
-  };
+  const reasonText = (r: InsightStudent["reasons"][number]) =>
+    r.key === "rate" ? t("ai.reasonRate", { value: r.value })
+    : r.key === "unjustified" ? t("ai.reasonUnjustified", { value: r.value })
+    : t("ai.reasonLate", { count: r.value });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className="glass-panel overflow-hidden"
+      transition={{ delay: 0.15, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="glass-panel flex flex-col"
     >
-      {/* Header with gradient */}
-      <div className="relative p-5 pb-3">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-blue-500/5 to-cyan-500/5" />
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
-              <Brain className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <h3 className="font-display font-semibold text-sm flex items-center gap-2">
-                AI Risk Predictor
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 uppercase tracking-wider">
-                  <Zap className="w-2.5 h-2.5" /> Beta
-                </span>
-              </h3>
-              <p className="text-xs text-muted-foreground">Predictive analysis of at-risk students</p>
-            </div>
+      <header className="p-6 pb-4 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/[0.09] flex items-center justify-center shrink-0">
+            <Activity className="w-5 h-5 text-primary" />
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            Live Analysis
+          <div>
+            <h2 className="font-display font-semibold text-xl leading-tight">{t("ai.riskTitle")}</h2>
+            <p className="text-[13px] text-muted-foreground mt-0.5">{t("ai.riskSubtitle")}</p>
           </div>
         </div>
-      </div>
+        {insights?.has_data && (
+          <span className="text-[11px] text-muted-foreground tabular-nums shrink-0 text-right leading-tight">
+            {t("ai.cohortRate", { rate: insights.cohort.absence_rate })}
+          </span>
+        )}
+      </header>
 
-      {/* Content */}
-      <div className="px-5 pb-5">
+      <div className="px-6 pb-6 flex-1">
         {isLoading ? (
-          <div className="space-y-3 mt-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 rounded-lg" />
-            ))}
+          <div className="space-y-2.5">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-[72px] rounded-lg" />)}
           </div>
-        ) : riskStudents.length === 0 ? (
-          <div className="text-center py-8">
-            <Shield className="w-10 h-10 text-green-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-green-400">All Clear</p>
-            <p className="text-xs text-muted-foreground mt-1">No students at significant risk</p>
+        ) : !insights?.has_data ? (
+          <div className="text-center py-10 px-4 rounded-xl bg-secondary/50">
+            <Hourglass className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-sm font-medium">{t("ai.riskNoData")}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 max-w-[38ch] mx-auto">{t("ai.riskNoDataHint")}</p>
+          </div>
+        ) : students.length === 0 ? (
+          <div className="text-center py-10 px-4 rounded-xl bg-success/[0.07]">
+            <ShieldCheck className="w-8 h-8 text-success mx-auto mb-3" />
+            <p className="text-sm font-medium text-success">{t("ai.riskEmpty")}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 max-w-[38ch] mx-auto">{t("ai.riskEmptyHint")}</p>
           </div>
         ) : (
-          <div className="space-y-2 mt-2">
-            {riskStudents.map((student, i) => (
-              <motion.div
-                key={student.id}
-                initial={{ opacity: 0, x: -20 }}
+          <ul className="space-y-2">
+            {students.map((s, i) => (
+              <motion.li
+                key={s.student_id}
+                initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.1 }}
-                className="group relative rounded-lg border border-border/50 bg-secondary/30 p-3 hover:bg-secondary/60 transition-colors"
+                transition={{ delay: 0.18 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={`w-2 h-2 rounded-full ${getRiskBg(student.risk)} ${student.risk >= 80 ? "animate-pulse" : ""}`} />
-                    <span className="text-sm font-medium truncate">{student.name}</span>
-                    <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{student.group}</span>
+                <button
+                  onClick={() => navigate("/dashboard/risk")}
+                  className="group w-full text-left rounded-xl border border-border bg-card p-3.5 hover:border-primary/35 hover:bg-secondary/40 transition-colors flex items-center gap-3.5"
+                >
+                  <ScoreRing score={s.score} level={s.level} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-medium truncate">{s.student_name}</span>
+                      <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded shrink-0">{s.group_name}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1 truncate">
+                      {s.reasons.map(reasonText).join(" · ")}
+                    </p>
+                    <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${s.score}%` }}
+                        transition={{ duration: 0.8, delay: 0.25 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                        className={`h-full rounded-full ${TONE[s.level].bar}`}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {student.trend === "rising" && <TrendingUp className="w-3.5 h-3.5 text-red-400" />}
-                    {student.trend === "stable" && <TrendingDown className="w-3.5 h-3.5 text-yellow-400" />}
-                    {student.trend === "declining" && <TrendingDown className="w-3.5 h-3.5 text-green-400" />}
-                    <span className={`text-xs font-bold ${getRiskColor(student.risk)}`}>
-                      {student.risk}%
-                    </span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${getRiskBg(student.risk)}/10 ${getRiskColor(student.risk)}`}>
-                      {getRiskLabel(student.risk)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Risk bar */}
-                <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${student.risk}%` }}
-                    transition={{ duration: 1, ease: "easeOut", delay: 0.6 + i * 0.1 }}
-                    className={`h-full rounded-full ${getRiskBg(student.risk)}`}
-                  />
-                </div>
-
-                {/* Details */}
-                <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
-                  <span>{student.hours}h absent · {student.weeklyRate}h/week avg</span>
-                  {student.predictedBreachDate ? (
-                    <span className="flex items-center gap-1 text-red-400">
-                      <AlertTriangle className="w-3 h-3" />
-                      Limit by {student.predictedBreachDate}
-                    </span>
-                  ) : (
-                    <span className="text-green-400/60">On track</span>
-                  )}
-                </div>
-              </motion.div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                </button>
+              </motion.li>
             ))}
-          </div>
+          </ul>
         )}
 
-        {/* AI Confidence footer */}
-        {riskStudents.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-border/30 flex items-center justify-between text-[10px] text-muted-foreground">
-            <span>Model confidence: 87% · Based on {studentsRes?.data?.length ?? 0} students</span>
-            <span className="flex items-center gap-1">
-              <Brain className="w-3 h-3 text-purple-400" />
-              Updated just now
-            </span>
-          </div>
+        {students.length > 0 && (
+          <footer className="mt-4 pt-3 border-t border-border/60 text-[11px] text-muted-foreground">
+            {t("ai.scoreExplainer")}
+          </footer>
         )}
       </div>
-    </motion.div>
+    </motion.section>
   );
 };
 

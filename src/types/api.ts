@@ -109,6 +109,88 @@ export interface ImportPreview<T> {
   expires_at: string;
 }
 
+export interface StudentStats {
+  student: Student;
+  absence_hours: number;
+  justified_hours: number;
+  unjustified_hours: number;
+  pending_hours: number;
+  absence_count: number;
+  late_count: number;
+  late_minutes: number;
+  session_count: number;
+  attendance_rate: number;
+  threshold_hours: number;
+  monthly: { month: string; label: string; hours: number }[];
+  worst_weekday?: string | null;
+  recent: {
+    id: number;
+    date: string;
+    hours: number;
+    attendance_status: AttendanceStatus;
+    status: Absence["status"];
+    late_minutes: number;
+    group_name: string;
+  }[];
+}
+
+export interface HeatmapCell {
+  date: string;
+  hours: number;
+  count: number;
+  future: boolean;
+}
+
+export interface HeatmapWeek {
+  week: string;
+  week_start: string;
+  days: HeatmapCell[];
+}
+
+export interface HeatmapData {
+  weeks: HeatmapWeek[];
+  peak_hours: number;
+  range_start: string;
+  range_end: string;
+  anchored_on_data: boolean;
+}
+
+export type RiskLevel = "critical" | "high" | "watch" | "ok";
+
+export interface InsightStudent {
+  student_id: number;
+  student_name: string;
+  group_name: string;
+  score: number;
+  level: RiskLevel;
+  absent_hours: number;
+  unjustified_hours: number;
+  absence_count: number;
+  late_count: number;
+  sessions: number;
+  absence_rate: number;
+  reasons: { key: "rate" | "unjustified" | "late"; value: number }[];
+}
+
+export interface InsightPattern {
+  student_id: number;
+  student_name: string;
+  group_name: string;
+  day_index: number;
+  count: number;
+  total: number;
+  share: number;
+  severity: "critical" | "warning" | "info";
+}
+
+export interface DashboardInsights {
+  has_data: boolean;
+  students: InsightStudent[];
+  patterns: InsightPattern[];
+  weekday_totals: number[];
+  cohort: { sessions: number; absent_hours: number; absence_rate: number };
+}
+
 export interface Absence {
   id: number;
   student_id: number;

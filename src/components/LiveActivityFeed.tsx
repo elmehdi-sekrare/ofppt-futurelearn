@@ -1,8 +1,10 @@
 import { useMemo, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Activity, Clock, FileCheck, AlertTriangle, UserMinus, CheckCircle, XCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
+import { getDateLocale } from "@/i18n/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FeedEvent {
@@ -16,6 +18,7 @@ interface FeedEvent {
 }
 
 const LiveActivityFeed = () => {
+  const { t, i18n } = useTranslation();
   const [visibleCount, setVisibleCount] = useState(5);
   const [pulse, setPulse] = useState(false);
 
@@ -48,11 +51,11 @@ const LiveActivityFeed = () => {
       items.push({
         id: `abs-${a.id}`,
         type: "absence",
-        title: "Absence Recorded",
+        title: t("feed.absenceRecorded"),
         description: `${a.student_name} · ${a.subject} · ${a.hours}h`,
         time: a.date,
         icon: <UserMinus className="w-3.5 h-3.5" />,
-        color: "text-red-400",
+        color: "text-destructive",
       });
     });
 
@@ -61,31 +64,31 @@ const LiveActivityFeed = () => {
         items.push({
           id: `just-sub-${j.id}`,
           type: "justification_submitted",
-          title: "Justification Submitted",
+          title: t("feed.justificationSubmitted"),
           description: `${j.student_name} · ${j.reason.slice(0, 40)}...`,
           time: j.submitted_at,
           icon: <FileCheck className="w-3.5 h-3.5" />,
-          color: "text-blue-400",
+          color: "text-primary",
         });
       } else if (j.status === "approved") {
         items.push({
           id: `just-app-${j.id}`,
           type: "justification_approved",
-          title: "Justification Approved",
+          title: t("feed.justificationApproved"),
           description: `${j.student_name} · ${j.hours}h justified`,
           time: j.submitted_at,
           icon: <CheckCircle className="w-3.5 h-3.5" />,
-          color: "text-green-400",
+          color: "text-success",
         });
       } else if (j.status === "rejected") {
         items.push({
           id: `just-rej-${j.id}`,
           type: "justification_rejected",
-          title: "Justification Rejected",
+          title: t("feed.justificationRejected"),
           description: `${j.student_name} · ${j.reason.slice(0, 40)}...`,
           time: j.submitted_at,
           icon: <XCircle className="w-3.5 h-3.5" />,
-          color: "text-orange-400",
+          color: "text-warning",
         });
       }
     });
@@ -105,11 +108,11 @@ const LiveActivityFeed = () => {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    if (diffMins < 1) return t("feed.justNow");
+    if (diffMins < 60) return t("feed.minutesAgo", { count: diffMins });
+    if (diffHours < 24) return t("feed.hoursAgo", { count: diffHours });
+    if (diffDays < 7) return t("feed.daysAgo", { count: diffDays });
+    return d.toLocaleDateString(getDateLocale(i18n.language), { day: "numeric", month: "short" });
   };
 
   return (
@@ -122,17 +125,17 @@ const LiveActivityFeed = () => {
       {/* Header */}
       <div className="p-5 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/20 to-green-500/20 flex items-center justify-center transition-all ${pulse ? "scale-110" : ""}`}>
-            <Activity className={`w-5 h-5 text-cyan-400 transition-transform ${pulse ? "scale-110" : ""}`} />
+          <div className={`w-9 h-9 rounded-xl bg-primary/[0.09] flex items-center justify-center transition-all ${pulse ? "scale-110" : ""}`}>
+            <Activity className={`w-5 h-5 text-primary transition-transform ${pulse ? "scale-110" : ""}`} />
           </div>
           <div>
-            <h3 className="font-display font-semibold text-sm">Live Activity</h3>
-            <p className="text-xs text-muted-foreground">Real-time system events</p>
+            <h3 className="font-display font-semibold text-lg leading-tight">{t("feed.title")}</h3>
+            <p className="text-[13px] text-muted-foreground mt-0.5">{t("feed.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full bg-green-400 ${pulse ? "animate-ping" : "animate-pulse"}`} />
-          <span className="text-[10px] text-muted-foreground">Auto-refresh 30s</span>
+          <div className={`w-2 h-2 rounded-full bg-success ${pulse ? "animate-ping" : "animate-pulse"}`} />
+          <span className="text-[10px] text-muted-foreground">{t("feed.autoRefresh")}</span>
         </div>
       </div>
 
@@ -147,7 +150,7 @@ const LiveActivityFeed = () => {
         ) : events.length === 0 ? (
           <div className="text-center py-8">
             <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-            <p className="text-xs text-muted-foreground">No recent activity</p>
+            <p className="text-xs text-muted-foreground">{t("feed.empty")}</p>
           </div>
         ) : (
           <>

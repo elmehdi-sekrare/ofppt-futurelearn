@@ -7,7 +7,7 @@ import { useNotificationStore } from "@/stores/notificationStore";
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   info: { icon: <Info className="w-4 h-4" />, color: "text-primary bg-primary/10" },
   warning: { icon: <AlertTriangle className="w-4 h-4" />, color: "text-warning bg-warning/10" },
-  success: { icon: <CheckCircle className="w-4 h-4" />, color: "text-emerald-400 bg-emerald-500/10" },
+  success: { icon: <CheckCircle className="w-4 h-4" />, color: "text-success bg-success/10" },
   error: { icon: <XCircle className="w-4 h-4" />, color: "text-destructive bg-destructive/10" },
 };
 

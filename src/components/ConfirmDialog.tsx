@@ -22,9 +22,9 @@ const icons = {
 };
 
 const colors = {
-  danger: { bg: "bg-red-500/10", text: "text-red-400", btn: "bg-red-500 hover:bg-red-600 text-white" },
-  warning: { bg: "bg-yellow-500/10", text: "text-yellow-400", btn: "bg-yellow-500 hover:bg-yellow-600 text-black" },
-  info: { bg: "bg-blue-500/10", text: "text-blue-400", btn: "btn-glow border-0 text-primary-foreground" },
+  danger: { bg: "bg-destructive/10", text: "text-destructive", btn: "bg-destructive hover:bg-red-600 text-white" },
+  warning: { bg: "bg-warning/10", text: "text-warning", btn: "bg-warning hover:bg-yellow-600 text-black" },
+  info: { bg: "bg-primary/10", text: "text-primary", btn: "btn-glow border-0 text-primary-foreground" },
 };
 
 const ConfirmDialog = ({
@@ -70,7 +70,7 @@ const ConfirmDialog = ({
               </button>
             </div>
             <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={onCancel} className="border-white/[0.08]" disabled={loading}>
+              <Button variant="outline" onClick={onCancel} className="border-border" disabled={loading}>
                 {cancelLabel}
               </Button>
               <Button onClick={onConfirm} className={c.btn} disabled={loading}>

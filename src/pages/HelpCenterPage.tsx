@@ -41,7 +41,7 @@ const guides: GuideSection[] = [
   {
     title: "Getting Started",
     icon: <BookOpen className="w-5 h-5" />,
-    color: "bg-blue-500/10 text-blue-400",
+    color: "bg-primary/10 text-primary",
     roles: ["admin", "teacher", "student"],
     steps: [
       "Log in with your credentials (email and password provided by admin)",
@@ -54,7 +54,7 @@ const guides: GuideSection[] = [
   {
     title: "Managing Students",
     icon: <GraduationCap className="w-5 h-5" />,
-    color: "bg-green-500/10 text-green-400",
+    color: "bg-success/10 text-success",
     roles: ["admin"],
     steps: [
       "Navigate to Students page from the sidebar",
@@ -67,7 +67,7 @@ const guides: GuideSection[] = [
   {
     title: "Marking Attendance",
     icon: <ClipboardList className="w-5 h-5" />,
-    color: "bg-purple-500/10 text-purple-400",
+    color: "bg-accent/10 text-accent",
     roles: ["teacher"],
     steps: [
       "Go to Mark Absence from the sidebar",
@@ -80,7 +80,7 @@ const guides: GuideSection[] = [
   {
     title: "Submitting Justifications",
     icon: <FileCheck className="w-5 h-5" />,
-    color: "bg-orange-500/10 text-orange-400",
+    color: "bg-warning/10 text-warning",
     roles: ["student"],
     steps: [
       "Go to Justifications from the sidebar",
@@ -93,7 +93,7 @@ const guides: GuideSection[] = [
   {
     title: "Reviewing & Reports",
     icon: <BarChart3 className="w-5 h-5" />,
-    color: "bg-cyan-500/10 text-cyan-400",
+    color: "bg-primary/10 text-primary",
     roles: ["admin"],
     steps: [
       "Use the Dashboard to get an overview of attendance metrics",
@@ -202,7 +202,7 @@ const HelpCenterPage = () => {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-white/[0.06] pt-3">
+                      <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-border pt-3">
                         {faq.a}
                       </div>
                     </motion.div>
@@ -260,10 +260,10 @@ const HelpCenterPage = () => {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="flex items-center justify-between py-2 border-b border-white/[0.06] last:border-0"
+                className="flex items-center justify-between py-2 border-b border-border last:border-0"
               >
                 <span className="text-sm text-muted-foreground">{s.desc}</span>
-                <kbd className="px-3 py-1.5 rounded-lg bg-secondary border border-white/[0.08] font-mono text-xs text-foreground">
+                <kbd className="px-3 py-1.5 rounded-lg bg-secondary border border-border font-mono text-xs text-foreground">
                   {s.keys}
                 </kbd>
               </motion.div>

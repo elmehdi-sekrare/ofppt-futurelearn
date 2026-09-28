@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import type { AttendanceStatus } from "@/types/api";
 
 const attendanceOptionsBase: { value: AttendanceStatus; className: string; icon: typeof CheckCircle2 }[] = [
-  { value: "present", className: "border-emerald-500/30 text-emerald-400 bg-emerald-500/10", icon: CheckCircle2 },
+  { value: "present", className: "border-success/30 text-success bg-success/10", icon: CheckCircle2 },
   { value: "late", className: "border-amber-500/30 text-amber-400 bg-amber-500/10", icon: Timer },
   { value: "absent", className: "border-destructive/30 text-destructive bg-destructive/10", icon: CircleAlert },
   { value: "excused", className: "border-primary/30 text-primary bg-primary/10", icon: BadgeCheck },

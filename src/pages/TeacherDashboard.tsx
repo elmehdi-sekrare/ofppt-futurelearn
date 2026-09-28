@@ -48,7 +48,7 @@ const TeacherDashboard = () => {
         <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                                 <Briefcase className="w-3.5 h-3.5" /> {t("auth.teacher")}
               </span>
               <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -58,7 +58,7 @@ const TeacherDashboard = () => {
             <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-balance">
               {greeting}, Prof. {user?.last_name ?? t("auth.teacher")} <span className="inline-block">&#x1F44B;</span>
             </h1>
-                        <p className="text-muted-foreground text-sm mt-1.5">{t("teacher.overview")}</p>
+                        <p className="text-muted-foreground mt-4">{t("teacher.overview")}</p>
           </div>
           <button
             onClick={() => navigate("/teacher/mark")}
@@ -117,7 +117,7 @@ const TeacherDashboard = () => {
           <div className="space-y-2.5">
             <button
               onClick={() => navigate("/teacher/mark")}
-              className="group w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/40 hover:bg-secondary/70 border border-white/[0.04] transition-colors text-left"
+              className="group w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/40 hover:bg-secondary/70 border border-border transition-colors text-left"
             >
               <span className="w-9 h-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
                 <ClipboardList className="w-[18px] h-[18px]" />
@@ -131,9 +131,9 @@ const TeacherDashboard = () => {
 
             <button
               onClick={() => navigate("/teacher/history")}
-              className="group w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/40 hover:bg-secondary/70 border border-white/[0.04] transition-colors text-left"
+              className="group w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/40 hover:bg-secondary/70 border border-border transition-colors text-left"
             >
-              <span className="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0">
+              <span className="w-9 h-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
                 <History className="w-[18px] h-[18px]" />
               </span>
               <span className="flex-1 min-w-0">

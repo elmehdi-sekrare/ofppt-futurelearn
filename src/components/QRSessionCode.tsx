@@ -144,9 +144,9 @@ const QRSessionCode = ({ groupName, groupId, date, startTime, endTime, subject }
                   <span>{groupName} · {subject} · {startTime}-{endTime}</span>
                 </div>
                 <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full font-mono font-bold ${
-                  expiresIn <= 60 ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"
+                  expiresIn <= 60 ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
                 }`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${expiresIn <= 60 ? "bg-red-400 animate-pulse" : "bg-green-400"}`} />
+                  <div className={`w-1.5 h-1.5 rounded-full ${expiresIn <= 60 ? "bg-red-400 animate-pulse" : "bg-success"}`} />
                   {expiresIn > 0 ? formatCountdown(expiresIn) : "EXPIRED"}
                 </div>
               </div>
@@ -191,7 +191,7 @@ const QRSessionCode = ({ groupName, groupId, date, startTime, endTime, subject }
                   {/* Expired overlay */}
                   {expiresIn === 0 && (
                     <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center">
-                      <span className="text-xs font-bold text-red-500">EXPIRED</span>
+                      <span className="text-xs font-bold text-destructive">EXPIRED</span>
                     </div>
                   )}
                 </motion.div>
@@ -208,7 +208,7 @@ const QRSessionCode = ({ groupName, groupId, date, startTime, endTime, subject }
                   onClick={handleCopy}
                   className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm transition-colors"
                 >
-                  {copied ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <CheckCircle className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                   {copied ? "Copied!" : "Copy Code"}
                 </motion.button>
 

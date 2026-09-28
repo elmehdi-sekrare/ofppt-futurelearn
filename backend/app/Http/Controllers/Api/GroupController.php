@@ -141,7 +141,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $students = $group->students()->with(['user', 'group'])->get();
+        $students = $group->students()->with(['user', 'group'])->withAttendanceTotals()->get();
         return StudentResource::collection($students);
     }
 

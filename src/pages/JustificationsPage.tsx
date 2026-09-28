@@ -135,7 +135,7 @@ const JustificationsPage = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-sm text-muted-foreground">Upload Document</label>
-                  <label className="flex items-center gap-3 h-10 px-3 rounded-md bg-secondary/50 border border-white/[0.08] cursor-pointer hover:border-primary/30 transition-colors">
+                  <label className="flex items-center gap-3 h-10 px-3 rounded-md bg-secondary/50 border border-border cursor-pointer hover:border-primary/30 transition-colors">
                     <Upload className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground truncate">
                       {selectedFile?.name || "PDF or Image (max 5MB)"}
@@ -147,7 +147,7 @@ const JustificationsPage = () => {
 
               <div className="space-y-1.5">
                 <label className="text-sm text-muted-foreground">Reason / Explanation</label>
-                <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="Explain the reason for your absence..." className="w-full rounded-md p-3 bg-secondary/50 border border-white/[0.08] text-sm text-foreground placeholder:text-muted-foreground resize-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all" />
+                <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="Explain the reason for your absence..." className="w-full rounded-md p-3 bg-secondary/50 border border-border text-sm text-foreground placeholder:text-muted-foreground resize-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all" />
                 <p className="text-xs text-muted-foreground text-right">{reason.length}/500</p>
               </div>
 
@@ -254,7 +254,7 @@ const JustificationsPage = () => {
                       <p className="text-sm text-muted-foreground">{justification.file_name}</p>
                       <iframe
                         src={justification.file_path}
-                        className="w-full h-[600px] rounded-lg border border-white/[0.08]"
+                        className="w-full h-[600px] rounded-lg border border-border"
                         title="PDF Preview"
                       />
                       <a
@@ -273,7 +273,7 @@ const JustificationsPage = () => {
                       <img
                         src={justification.file_path}
                         alt={justification.file_name}
-                        className="max-w-full h-auto rounded-lg border border-white/[0.08]"
+                        className="max-w-full h-auto rounded-lg border border-border"
                       />
                       <a
                         href={justification.file_path}

@@ -41,7 +41,7 @@ const StudentDashboard = () => {
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-semibold">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 text-success text-xs font-semibold">
           <Award className="w-3.5 h-3.5" /> Student
         </span>
         <span className="text-xs text-muted-foreground">{new Date().toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</span>
@@ -49,34 +49,34 @@ const StudentDashboard = () => {
 
       {/* Danger Zone Alert */}
       {!isLoading && isDanger && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5 text-red-400" />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-red-500/30 bg-destructive/5 p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
           </div>
           <div>
-            <p className="font-semibold text-sm text-red-400">Danger Zone!</p>
+            <p className="font-semibold text-sm text-destructive">Danger Zone!</p>
             <p className="text-xs text-muted-foreground">You've reached {progressPct.toFixed(0)}% of the maximum allowed absences ({absenceHours}h / {MAX_ABSENCE_HOURS}h). Contact administration immediately.</p>
           </div>
         </motion.div>
       )}
       {!isLoading && isWarning && !isDanger && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
-            <TrendingDown className="w-5 h-5 text-yellow-400" />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-yellow-500/30 bg-warning/5 p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
+            <TrendingDown className="w-5 h-5 text-warning" />
           </div>
           <div>
-            <p className="font-semibold text-sm text-yellow-400">Warning</p>
+            <p className="font-semibold text-sm text-warning">Warning</p>
             <p className="text-xs text-muted-foreground">You're at {progressPct.toFixed(0)}% of the maximum allowed absences ({absenceHours}h / {MAX_ABSENCE_HOURS}h). Try to improve your attendance.</p>
           </div>
         </motion.div>
       )}
       {!isLoading && isPerfect && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-xl border border-green-500/30 bg-green-500/5 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-            <Award className="w-5 h-5 text-green-400" />
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-xl border border-green-500/30 bg-success/5 p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+            <Award className="w-5 h-5 text-success" />
           </div>
           <div>
-            <p className="font-semibold text-sm text-green-400">Perfect Attendance!</p>
+            <p className="font-semibold text-sm text-success">Perfect Attendance!</p>
             <p className="text-xs text-muted-foreground">You have zero absence hours. Keep up the excellent work!</p>
           </div>
         </motion.div>
@@ -110,7 +110,7 @@ const StudentDashboard = () => {
               <circle cx="60" cy="60" r="52" fill="none" stroke="hsl(var(--border))" strokeWidth="10" />
               <circle
                 cx="60" cy="60" r="52" fill="none"
-                stroke="hsl(190, 90%, 50%)"
+                stroke="hsl(var(--primary))"
                 strokeWidth="10"
                 strokeLinecap="round"
                 strokeDasharray={`${attendancePct * 3.27} 327`}
@@ -137,7 +137,7 @@ const StudentDashboard = () => {
       >
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display font-semibold text-sm">Absence Limit Tracker</h3>
-          <span className={`text-xs font-semibold ${isDanger ? "text-red-400" : isWarning ? "text-yellow-400" : "text-green-400"}`}>
+          <span className={`text-xs font-semibold ${isDanger ? "text-destructive" : isWarning ? "text-warning" : "text-success"}`}>
             {absenceHours}h / {MAX_ABSENCE_HOURS}h
           </span>
         </div>
@@ -146,13 +146,13 @@ const StudentDashboard = () => {
             initial={{ width: 0 }}
             animate={{ width: `${progressPct}%` }}
             transition={{ duration: 1, ease: "easeOut", delay: 0.5 }}
-            className={`h-full rounded-full ${isDanger ? "bg-red-500" : isWarning ? "bg-yellow-500" : "bg-green-500"}`}
+            className={`h-full rounded-full ${isDanger ? "bg-destructive" : isWarning ? "bg-warning" : "bg-success"}`}
           />
         </div>
         <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
           <span>0h</span>
-          <span className="text-yellow-400">30h</span>
-          <span className="text-red-400">48h</span>
+          <span className="text-warning">30h</span>
+          <span className="text-destructive">48h</span>
           <span>{MAX_ABSENCE_HOURS}h</span>
         </div>
       </motion.div>

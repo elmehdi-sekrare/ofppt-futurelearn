@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Edit2, Trash2, X, GraduationCap, Filter, Download } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, X, GraduationCap, Filter, Download, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import SearchField from "@/components/SearchField";
 import { Button } from "@/components/ui/button";
 import { exportStudentsCSV } from "@/utils/exportUtils";
 import { useToast } from "@/hooks/use-toast";
@@ -11,9 +13,11 @@ import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSuccessNotification } from "@/components/SuccessNotification";
 import { StyledSelect } from "@/components/ui/styled-select";
+import StudentStatsDialog from "@/components/StudentStatsDialog";
 import type { Student } from "@/types/api";
 
 const StudentsPage = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
@@ -21,6 +25,7 @@ const StudentsPage = () => {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [statsStudent, setStatsStudent] = useState<Student | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const { toast } = useToast();
   const { showSuccess, NotificationComponent } = useSuccessNotification();
@@ -44,6 +49,8 @@ const StudentsPage = () => {
   const students = studentsRes?.data ?? [];
   const groups = groupsRes?.data ?? [];
   const activeGroups = groups.filter((group) => (group.status ?? "active") === "active");
+  // When the list is filtered to one group, "Add Student" targets that group directly.
+  const preselectedGroup = groupFilter ? activeGroups.find((group) => group.name === groupFilter) : undefined;
 
   const saveMutation = useMutation({
     mutationFn: (data: { id?: number; payload: any }) => {
@@ -54,23 +61,23 @@ const StudentsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       if (!vars.id && res?.credentials) {
         showSuccess({
-          title: "Student Added",
-          description: `Login: ${res.credentials.email} | Password: ${res.credentials.password}`,
+          title: t("students.added"),
+          description: `${t("auth.email")}: ${res.credentials.email} · ${t("auth.password")}: ${res.credentials.password}`,
           icon: "user-plus",
-          accentColor: "#3b82f6",
+          accentColor: "#1b5aa8",
         });
       } else {
         showSuccess({
-          title: vars.id ? "Student Updated" : "Student Added",
-          description: vars.id ? "Student details saved successfully" : "New student registered",
+          title: vars.id ? t("students.updated") : t("students.added"),
+          description: vars.id ? t("students.updatedDesc") : t("students.registered"),
           icon: vars.id ? "check" : "user-plus",
-          accentColor: vars.id ? "#10b981" : "#3b82f6",
+          accentColor: vars.id ? "#159a52" : "#1b5aa8",
         });
       }
       setDialogOpen(false);
     },
     onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("app.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -80,14 +87,14 @@ const StudentsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       setDeleteConfirm(null);
       showSuccess({
-        title: "Student Deleted",
-        description: "Student removed from the system",
+        title: t("students.deleted"),
+        description: t("students.deletedDesc"),
         icon: "trash",
-        accentColor: "#ef4444",
+        accentColor: "#c62839",
       });
     },
     onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("app.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -97,13 +104,13 @@ const StudentsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
       setSelectedIds([]);
       showSuccess({
-        title: "Students Deleted",
-        description: `${response.data.deleted} students removed from the system`,
+        title: t("students.deleted"),
+        description: t("studentsPage.bulkDeleted", { count: response.data.deleted }),
         icon: "trash",
-        accentColor: "#ef4444",
+        accentColor: "#c62839",
       });
     },
-    onError: (err: Error) => toast({ title: "Bulk deletion failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: t("app.error"), description: err.message, variant: "destructive" }),
   });
 
   const filtered = useMemo(() => {
@@ -121,13 +128,17 @@ const StudentsPage = () => {
     ? current.filter((id) => !filtered.some((student) => student.id === id))
     : Array.from(new Set([...current, ...filtered.map((student) => student.id)])));
   const deleteSelected = () => {
-    if (!selectedIds.length || !window.confirm(`Delete ${selectedIds.length} selected students? Their attendance history will also be deleted.`)) return;
+    if (!selectedIds.length || !window.confirm(t("studentsPage.confirmBulkDelete", { count: selectedIds.length }))) return;
     bulkDeleteMutation.mutate();
   };
 
   const openAdd = () => {
+    if (activeGroups.length === 0) {
+      toast({ title: t("studentsPage.noActiveGroup"), description: t("studentsPage.noActiveGroupHint"), variant: "destructive" });
+      return;
+    }
     setEditingStudent(null);
-    setForm({ firstName: "", lastName: "", cne: "", groupId: activeGroups[0]?.id || 0, phone: "" });
+    setForm({ firstName: "", lastName: "", cne: "", groupId: preselectedGroup?.id ?? activeGroups[0].id, phone: "" });
     setDialogOpen(true);
   };
 
@@ -139,7 +150,11 @@ const StudentsPage = () => {
 
   const handleSave = () => {
     if (!form.firstName.trim() || !form.lastName.trim() || !form.cne.trim()) {
-      toast({ title: "Validation Error", description: "First name, last name, and CNE are required", variant: "destructive" });
+      toast({ title: t("app.error"), description: t("studentsPage.requiredFields"), variant: "destructive" });
+      return;
+    }
+    if (!form.groupId) {
+      toast({ title: t("app.error"), description: t("studentsPage.selectGroupRequired"), variant: "destructive" });
       return;
     }
     const payload = {
@@ -165,36 +180,36 @@ const StudentsPage = () => {
   return (
     <>
     {NotificationComponent}
+    <StudentStatsDialog student={statsStudent} onClose={() => setStatsStudent(null)} />
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <motion.header initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold">Students</h1>
-          <p className="text-muted-foreground text-sm mt-1">{students.length} students registered</p>
+          <p className="eyebrow">{t("nav.students")}</p>
+          <h1 className="page-title mt-2.5">{t("students.title")}</h1>
+          <span className="brand-rule" />
+          <p className="text-muted-foreground mt-4">{t("studentsPage.registered", { count: students.length })}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {selectedIds.length > 0 && <Button variant="destructive" className="gap-2" onClick={deleteSelected} disabled={bulkDeleteMutation.isPending}>
-            <Trash2 className="w-4 h-4" /> {bulkDeleteMutation.isPending ? "Deleting..." : `Delete ${selectedIds.length}`}
+            <Trash2 className="w-4 h-4" /> {bulkDeleteMutation.isPending ? t("studentsPage.deleting") : t("studentsPage.deleteSelected", { count: selectedIds.length })}
           </Button>}
-          <Button variant="outline" className="gap-2 border-white/[0.08]" onClick={() => { exportStudentsCSV(filtered as any); showSuccess({ title: "Export Complete", description: `${filtered.length} students exported to CSV`, icon: "check", accentColor: "#10b981" }); }}>
-            <Download className="w-4 h-4" /> Export
+          <Button variant="outline" className="gap-2" onClick={() => { exportStudentsCSV(filtered as any); showSuccess({ title: t("studentsPage.exportDone"), description: t("studentsPage.exportDesc", { count: filtered.length }), icon: "check", accentColor: "#159a52" }); }}>
+            <Download className="w-4 h-4" /> {t("app.export")}
           </Button>
-          <Button onClick={openAdd} disabled={activeGroups.length === 0} className="btn-glow text-primary-foreground border-0 gap-2">
-            <Plus className="w-4 h-4" /> Add Student
+          <Button onClick={openAdd} className="btn-glow text-primary-foreground border-0 gap-2">
+            <Plus className="w-4 h-4" /> {preselectedGroup ? t("studentsPage.addTo", { group: preselectedGroup.name }) : t("students.add")}
           </Button>
         </div>
-      </motion.div>
+      </motion.header>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search students..." className="pl-10 input-glass" />
-        </div>
+        <SearchField value={search} onChange={setSearch} placeholder={t("students.search")} className="flex-1 basis-[22rem]" />
         <StyledSelect
           value={groupFilter}
           onValueChange={setGroupFilter}
           icon={<Filter className="w-4 h-4" />}
-          className="min-w-[150px]"
-          options={[{ label: "All Active Groups", value: "" }, ...activeGroups.map((g) => ({ label: g.name, value: g.name }))]}
+          className="w-full sm:w-[170px] shrink-0"
+          options={[{ label: t("students.allGroups"), value: "" }, ...activeGroups.map((g) => ({ label: g.name, value: g.name }))]}
         />
       </div>
 
@@ -202,62 +217,65 @@ const StudentsPage = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-secondary/30">
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground"><input type="checkbox" aria-label="Select all filtered students" checked={allFilteredSelected} onChange={toggleFiltered} /></th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden sm:table-cell">CNE</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Email</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Group</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Absence Hours</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+              <tr className="border-b border-border bg-secondary/40">
+                <th className="text-left py-3 px-4 w-10"><input type="checkbox" aria-label={t("app.all")} checked={allFilteredSelected} onChange={toggleFiltered} className="accent-primary" /></th>
+                <th className="th-label">{t("students.tableStudent")}</th>
+                <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground hidden sm:table-cell">{t("students.cne")}</th>
+                <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground hidden md:table-cell">{t("auth.email")}</th>
+                <th className="th-label">{t("students.tableGroup")}</th>
+                <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground hidden lg:table-cell">{t("stats.absenceHours")}</th>
+                <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">{t("app.actions")}</th>
               </tr>
             </thead>
             <tbody>
               <AnimatePresence>
                 {filtered.map((s, i) => (
                   <motion.tr key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ delay: i * 0.03 }} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
-                    <td className="py-3 px-4"><input type="checkbox" aria-label={`Select ${s.first_name} ${s.last_name}`} checked={selectedIds.includes(s.id)} onChange={() => toggleStudent(s.id)} /></td>
+                    <td className="py-3 px-4"><input type="checkbox" aria-label={`${s.first_name} ${s.last_name}`} checked={selectedIds.includes(s.id)} onChange={() => toggleStudent(s.id)} className="accent-primary" /></td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <GraduationCap className="w-4 h-4 text-primary" />
+                      <button onClick={() => setStatsStudent(s)} className="flex items-center gap-3 text-left group rounded-lg" title={t("stats.viewStats")}>
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary text-[11px] font-semibold">
+                          {`${s.first_name[0] ?? ""}${s.last_name[0] ?? ""}`.toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-medium">{s.first_name} {s.last_name}</p>
-                          <p className="text-xs text-muted-foreground sm:hidden">{s.cne}</p>
+                          <p className="font-medium group-hover:text-primary transition-colors">{s.first_name} {s.last_name}</p>
+                          <p className="text-xs text-muted-foreground sm:hidden mono-figure">{s.cne}</p>
                         </div>
-                      </div>
+                      </button>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell font-mono text-xs">{s.cne}</td>
-                    <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{s.email}</td>
+                    <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell mono-figure text-xs">{s.cne}</td>
+                    <td className="py-3 px-4 text-muted-foreground hidden md:table-cell text-xs">{s.email}</td>
                     <td className="py-3 px-4">
-                      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">{s.group_name}</span>
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground">{s.group_name}</span>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell">
                       <div className="flex items-center gap-2">
-                        <span className={`font-medium ${s.total_absence_hours > 48 ? "text-destructive" : s.total_absence_hours > 30 ? "text-yellow-500" : "text-foreground"}`}>
+                        <span className={`font-semibold tabular-nums ${s.total_absence_hours > 48 ? "text-destructive" : s.total_absence_hours > 30 ? "text-warning" : "text-foreground"}`}>
                           {s.total_absence_hours}h
                         </span>
                         {s.total_absence_hours > 48 && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 uppercase">Danger</span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-destructive/10 text-destructive uppercase tracking-wide">{t("studentsPage.danger")}</span>
                         )}
                         {s.total_absence_hours > 30 && s.total_absence_hours <= 48 && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 uppercase">Warning</span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-warning/10 text-warning uppercase tracking-wide">{t("studentsPage.warning")}</span>
                         )}
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
                       {deleteConfirm === s.id ? (
                         <div className="flex items-center gap-1 justify-end">
-                          <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(s.id)} className="h-7 text-xs">Confirm</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(null)} className="h-7 text-xs">Cancel</Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(s.id)} className="h-7 text-xs">{t("app.confirm")}</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(null)} className="h-7 text-xs">{t("app.cancel")}</Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 justify-end">
-                          <button onClick={() => openEdit(s)} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                          <button onClick={() => setStatsStudent(s)} title={t("stats.viewStats")} aria-label={t("stats.viewStats")} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-primary transition-colors">
+                            <BarChart3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => openEdit(s)} title={t("app.edit")} aria-label={t("app.edit")} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => setDeleteConfirm(s.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                          <button onClick={() => setDeleteConfirm(s.id)} title={t("app.delete")} aria-label={t("app.delete")} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -269,10 +287,15 @@ const StudentsPage = () => {
             </tbody>
           </table>
           {filtered.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No students found</p>
-              <p className="text-sm">Try adjusting your search or filters</p>
+            <div className="text-center py-16 px-6">
+              <GraduationCap className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+              <p className="font-medium">{t("students.empty")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t("students.emptyHint")}</p>
+              {students.length === 0 && (
+                <Button onClick={openAdd} className="btn-glow text-primary-foreground border-0 gap-2 mt-5">
+                  <Plus className="w-4 h-4" /> {t("students.add")}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -285,41 +308,41 @@ const StudentsPage = () => {
               <div onClick={() => setDialogOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.5)' }} />
               <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 9999, width: '90vw', maxWidth: '32rem' }} className="bg-card rounded-xl border border-border p-6 space-y-5 shadow-2xl">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-display font-semibold text-lg">{editingStudent ? "Edit Student" : "Add Student"}</h2>
-                  <button onClick={() => setDialogOpen(false)} className="p-1 hover:bg-secondary rounded-md text-muted-foreground"><X className="w-5 h-5" /></button>
+                  <h2 className="font-display font-semibold text-lg">{editingStudent ? t("students.edit") : t("students.add")}</h2>
+                  <button onClick={() => setDialogOpen(false)} aria-label={t("app.close")} className="p-1 hover:bg-secondary rounded-md text-muted-foreground"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">First Name</label>
-                    <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="input-glass" />
+                    <label htmlFor="student-first" className="text-sm font-medium">{t("students.firstName")}</label>
+                    <Input id="student-first" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="input-glass" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">Last Name</label>
-                    <Input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="input-glass" />
+                    <label htmlFor="student-last" className="text-sm font-medium">{t("students.lastName")}</label>
+                    <Input id="student-last" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="input-glass" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">CNE</label>
-                    <Input value={form.cne} onChange={(e) => setForm({ ...form, cne: e.target.value })} className="input-glass" />
+                    <label htmlFor="student-cne" className="text-sm font-medium">{t("students.cne")}</label>
+                    <Input id="student-cne" value={form.cne} onChange={(e) => setForm({ ...form, cne: e.target.value })} className="input-glass mono-figure" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">Phone</label>
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-glass" />
+                    <label htmlFor="student-phone" className="text-sm font-medium">{t("students.phone")}</label>
+                    <Input id="student-phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-glass" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">Group</label>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-sm font-medium">{t("students.group")}</label>
                     <StyledSelect
                       value={form.groupId ? String(form.groupId) : ""}
                       onValueChange={(v) => setForm({ ...form, groupId: v ? Number(v) : 0 })}
-                      placeholder="Select a group"
+                      placeholder={t("students.selectGroup")}
                       options={activeGroups.map((g) => ({ label: `${g.name} — ${g.level}`, value: String(g.id) }))}
                     />
-                    {activeGroups.length === 0 && <p className="text-xs text-amber-500">Create or restore an active group before adding students.</p>}
+                    {activeGroups.length === 0 && <p className="text-xs text-warning">{t("students.needGroup")}</p>}
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                  <Button variant="ghost" onClick={() => setDialogOpen(false)}>{t("app.cancel")}</Button>
                   <Button onClick={handleSave} disabled={saveMutation.isPending} className="btn-glow text-primary-foreground border-0">
-                    {saveMutation.isPending ? "Saving..." : editingStudent ? "Update" : "Add"} Student
+                    {saveMutation.isPending ? t("app.saving") : editingStudent ? t("app.update") : t("app.add")}
                   </Button>
                 </div>
               </div>
