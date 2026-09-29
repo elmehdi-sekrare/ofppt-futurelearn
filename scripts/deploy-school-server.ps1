@@ -8,13 +8,12 @@ $frontendTarget = Join-Path $backendRoot 'public\app'
 
 Set-Location $projectRoot
 npm ci
+# The school-server build writes straight into backend\public\app (see vite.config.ts),
+# so there is nothing to copy afterwards.
 npm run build:school-server
-
-if (Test-Path -LiteralPath $frontendTarget) {
-    Remove-Item -LiteralPath $frontendTarget -Recurse -Force
+if (-not (Test-Path -LiteralPath (Join-Path $frontendTarget 'index.html'))) {
+    throw "Frontend build did not produce $frontendTarget\index.html"
 }
-New-Item -ItemType Directory -Path $frontendTarget -Force | Out-Null
-Copy-Item -Path (Join-Path $projectRoot 'dist\*') -Destination $frontendTarget -Recurse -Force
 
 Set-Location $backendRoot
 composer install --no-dev --optimize-autoloader
