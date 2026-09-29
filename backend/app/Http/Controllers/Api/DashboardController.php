@@ -278,10 +278,9 @@ class DashboardController extends Controller
         $students = collect($rows)->map(function (array $row) use ($worstUnjustified) {
             $sessions = max(1, $row['sessions']);
             $absenceRate = $row['absent']->count() / $sessions;
-            $severity = $worstUnjustified > 0 ? $row['unjustified_hours'] / $worstUnjustified : 0.0;
-            $recency = $row['absent_hours'] > 0 ? $row['recent_hours'] / $row['absent_hours'] : 0.0;
-
-            $score = (int) round(100 * min(1.0, ($absenceRate * 0.45) + ($severity * 0.40) + ($recency * 0.15)));
+            $score = AttendanceRiskService::vigilanceScore(
+                $absenceRate, $row['unjustified_hours'], $worstUnjustified, $row['recent_hours'], $row['absent_hours']
+            );
 
             $reasons = [];
             if ($absenceRate > 0) $reasons[] = ['key' => 'rate', 'value' => (int) round($absenceRate * 100)];

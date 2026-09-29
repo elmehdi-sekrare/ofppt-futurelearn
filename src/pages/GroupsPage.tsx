@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Edit2, Trash2, X, BookOpen, Users, GraduationCap, FileUp, Upload } from "lucide-react";
+import { Plus, Edit2, Trash2, X, BookOpen, GraduationCap, FileUp, Archive, AlertTriangle, CalendarClock, ChevronDown } from "lucide-react";
+import { getDateLocale } from "@/i18n/i18n";
 import { Input } from "@/components/ui/input";
 import SearchField from "@/components/SearchField";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,16 @@ const academicYearOptions = Array.from({ length: 7 }, (_, index) => {
   return `${start}-${start + 1}`;
 });
 
+/** "dev 102" -> { prefix: "DEV", number: "102" } for the card monogram. */
+const monogram = (name: string) => {
+  const match = name.trim().match(/^([^\d]*?)[\s-]*(\d[\w-]*)$/);
+  if (match) return { prefix: match[1].trim().slice(0, 4).toUpperCase(), number: match[2].slice(0, 4) };
+  return { prefix: "", number: name.replace(/\s+/g, "").slice(0, 3).toUpperCase() };
+};
+
 const GroupsPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = getDateLocale(i18n.language);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
@@ -222,97 +231,166 @@ const GroupsPage = () => {
         <StyledSelect value={statusFilter} onValueChange={(value) => { setStatusFilter(value as "active" | "archived"); setSelectedIds([]); }} className="w-full sm:w-[170px] shrink-0" options={[{ label: t("groups.activeGroups"), value: "active" }, { label: t("groups.archivedGroups"), value: "archived" }]} />
       </div>
 
-      {filtered.length > 0 && <label className="flex items-center gap-2 text-sm text-muted-foreground w-fit cursor-pointer">
-        <input type="checkbox" checked={allFilteredSelected} onChange={toggleFiltered} className="accent-primary" />
-        {t("groups.selectAll")}
-      </label>}
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between gap-3 -mb-1">
+          <label className="inline-flex items-center gap-2.5 text-[13px] text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">
+            <input type="checkbox" checked={allFilteredSelected} onChange={toggleFiltered} className="w-4 h-4 rounded accent-primary cursor-pointer" />
+            {selectedIds.length > 0 ? t("groupsPage.selectedCount", { count: selectedIds.length }) : t("groups.selectAll")}
+          </label>
+          <span className="text-[13px] text-muted-foreground tabular-nums">{t("groupsPage.groupCount", { count: filtered.length })}</span>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-start">
         <AnimatePresence>
           {filtered.map((g, i) => {
             const isExpanded = expandedGroup === g.id;
+            const isImporting = importGroup?.id === g.id;
+            const isSelected = selectedIds.includes(g.id);
+            const archived = g.status === "archived";
+            const { prefix, number } = monogram(g.name);
+            const teachers = g.teacher_count ?? 0;
             return (
-              <motion.div key={g.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ delay: i * 0.05 }} className="glass-panel p-5 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <input type="checkbox" aria-label={g.name} checked={selectedIds.includes(g.id)} onChange={() => toggleGroup(g.id)} className="accent-primary shrink-0" />
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <BookOpen className="w-5 h-5 text-primary" />
+              <motion.article
+                key={g.id}
+                layout="position"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className={`group/card relative bg-card rounded-2xl border overflow-hidden transition-[border-color,box-shadow] duration-300 ${
+                  isSelected ? "border-primary/55 shadow-[0_0_0_3px_hsl(var(--primary)/0.1),var(--shadow-card)]" : "border-[hsl(var(--glass-border))] shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-raised)] hover:border-primary/25"
+                }`}
+              >
+                <header className="p-5 pb-4 flex items-start gap-4">
+                  <div className="relative shrink-0">
+                    <div
+                      className={`w-14 h-14 rounded-[14px] flex flex-col items-center justify-center leading-none transition-colors ${
+                        archived ? "bg-secondary text-muted-foreground" : "bg-primary text-primary-foreground shadow-[0_6px_16px_-8px_hsl(var(--primary)/0.7)]"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {prefix && <span className="text-[9px] font-bold tracking-[0.14em] opacity-75">{prefix}</span>}
+                      <span className={`font-display font-extrabold tracking-[-0.03em] tabular-nums ${number.length > 3 ? "text-base" : "text-xl"} ${prefix ? "mt-0.5" : ""}`}>{number}</span>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-display font-semibold truncate">{g.name}</h3>
-                      <p className="text-xs text-muted-foreground truncate">{g.degree ?? g.level}{g.study_year ? ` · ${g.study_year}` : ""}{g.academic_year ? ` · ${g.academic_year}` : ""}</p>
-                      {g.status === "archived" && <span className="text-[10px] uppercase tracking-wide text-warning font-semibold">{t("groups.archived")}</span>}
-                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label={g.name}
+                      checked={isSelected}
+                      onChange={() => toggleGroup(g.id)}
+                      className={`absolute -top-1.5 -left-1.5 w-[18px] h-[18px] rounded accent-primary cursor-pointer bg-card shadow-sm transition-opacity ${
+                        isSelected || selectedIds.length > 0 ? "opacity-100" : "opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100"
+                      }`}
+                    />
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h3 className="font-display font-bold text-lg leading-tight truncate">{g.name}</h3>
+                      {archived && <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded bg-warning/[0.12] text-warning shrink-0">{t("groups.archived")}</span>}
+                    </div>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted-foreground">
+                      <span className="font-medium text-foreground/80">{g.degree ?? g.level}</span>
+                      {g.study_year && <><span className="w-1 h-1 rounded-full bg-border" />{g.study_year}</>}
+                      {g.academic_year && <><span className="w-1 h-1 rounded-full bg-border" /><span className="tabular-nums">{g.academic_year}</span></>}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 shrink-0 -mr-1.5 -mt-1">
                     {deleteConfirm === g.id ? (
-                      <>
+                      <div className="flex items-center gap-1 rounded-lg bg-destructive/[0.07] p-1">
                         <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(g.id)} className="h-7 text-xs">{t("app.confirm")}</Button>
                         <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(null)} className="h-7 text-xs">{t("app.cancel")}</Button>
-                      </>
+                      </div>
                     ) : (
                       <>
-                        {g.status !== "archived" && <button onClick={() => setImportGroup(importGroup?.id === g.id ? null : g)} title={t("groupsPage.importList")} aria-label={t("groupsPage.importList")} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"><Upload className="w-3.5 h-3.5" /></button>}
-                        <button onClick={() => openEdit(g)} title={t("app.edit")} aria-label={t("app.edit")} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                        {g.status !== "archived" && <button onClick={() => setDeleteConfirm(g.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title={t("groups.archived")} aria-label={t("groups.archived")}><Trash2 className="w-3.5 h-3.5" /></button>}
+                        <button onClick={() => openEdit(g)} title={t("app.edit")} aria-label={t("app.edit")} className="p-2 rounded-lg text-muted-foreground/70 hover:bg-secondary hover:text-foreground transition-colors"><Edit2 className="w-4 h-4" /></button>
+                        {!archived && <button onClick={() => setDeleteConfirm(g.id)} className="p-2 rounded-lg text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-colors" title={t("groupsPage.archiveOne")} aria-label={t("groupsPage.archiveOne")}><Archive className="w-4 h-4" /></button>}
                       </>
                     )}
                   </div>
-                </div>
+                </header>
 
-                <div className="flex gap-5">
-                  <div className="flex items-center gap-2 text-sm">
-                    <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                    <span className="tabular-nums">{t("groupsPage.studentsCount", { count: g.student_count })}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="tabular-nums">{t("groupsPage.teachersCount", { count: g.teacher_count ?? 0 })}</span>
-                  </div>
-                </div>
+                <dl className="grid grid-cols-3 border-y border-border/70">
+                  {[
+                    { label: t("groupsPage.metricStudents"), value: g.student_count, unit: "", warn: false },
+                    { label: t("groupsPage.metricTeachers"), value: teachers, unit: "", warn: teachers === 0 && !archived },
+                    { label: t("groupsPage.metricHours"), value: g.absence_hours ?? 0, unit: "h", warn: false },
+                  ].map((m, mi) => (
+                    <div key={m.label} className={`px-5 py-3.5 ${mi > 0 ? "border-l border-border/70" : ""}`}>
+                      <dt className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground truncate">{m.label}</dt>
+                      <dd className={`mt-1 font-display font-bold text-[1.4rem] leading-none tabular-nums ${m.warn ? "text-warning" : ""}`}>
+                        {m.value}{m.unit && <span className="text-sm text-muted-foreground font-semibold ml-0.5">{m.unit}</span>}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
 
-                <div className="flex items-center gap-4">
-                  <button onClick={() => setExpandedGroup(isExpanded ? null : g.id)} className="text-xs font-medium text-primary hover:underline">
-                    {isExpanded ? t("groupsPage.hideStudents") : t("groupsPage.showStudents")}
-                  </button>
-                  {g.status !== "archived" && (
-                    <button onClick={() => setImportGroup(importGroup?.id === g.id ? null : g)} className="text-xs font-medium text-primary hover:underline flex items-center gap-1">
-                      <FileUp className="w-3 h-3" /> {importGroup?.id === g.id ? t("groupsPage.closeImport") : t("groupsPage.importList")}
-                    </button>
+                <p className="px-5 py-3 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+                  {teachers === 0 && !archived ? (
+                    <><AlertTriangle className="w-3.5 h-3.5 text-warning shrink-0" /><span className="text-warning font-medium">{t("groupsPage.noTeacher")}</span></>
+                  ) : g.last_session_date ? (
+                    <><CalendarClock className="w-3.5 h-3.5 shrink-0" />{t("groupsPage.lastSession", { date: new Date(g.last_session_date).toLocaleDateString(dateLocale, { day: "numeric", month: "long" }), count: g.absence_count ?? 0 })}</>
+                  ) : (
+                    <><CalendarClock className="w-3.5 h-3.5 shrink-0" />{t("groupsPage.noSession")}</>
                   )}
-                </div>
+                </p>
 
-                <AnimatePresence>
-                  {importGroup?.id === g.id && (
+                <footer className="grid grid-cols-2 border-t border-border/70 bg-secondary/25">
+                  <button
+                    onClick={() => setExpandedGroup(isExpanded ? null : g.id)}
+                    aria-expanded={isExpanded}
+                    className={`flex items-center justify-center gap-2 py-3 text-[13px] font-semibold transition-colors ${isExpanded ? "text-primary bg-primary/[0.06]" : "text-foreground/80 hover:text-primary hover:bg-secondary/60"}`}
+                  >
+                    <GraduationCap className="w-4 h-4" />
+                    {isExpanded ? t("groupsPage.hideStudents") : t("groupsPage.showStudents")}
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => setImportGroup(isImporting ? null : g)}
+                    disabled={archived}
+                    aria-expanded={isImporting}
+                    className={`flex items-center justify-center gap-2 py-3 text-[13px] font-semibold border-l border-border/70 transition-colors disabled:opacity-40 disabled:pointer-events-none ${isImporting ? "text-primary bg-primary/[0.06]" : "text-foreground/80 hover:text-primary hover:bg-secondary/60"}`}
+                  >
+                    <FileUp className="w-4 h-4" />
+                    {isImporting ? t("groupsPage.closeImport") : t("groupsPage.importList")}
+                  </button>
+                </footer>
+
+                <AnimatePresence initial={false}>
+                  {isImporting && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <div className="pt-3 border-t border-border/50">
+                      <div className="p-5 border-t border-border/70">
                         <GroupRosterImport
                           groupId={g.id}
-                          onImported={() => { setImportGroup(null); queryClient.invalidateQueries({ queryKey: ["group-students", g.id] }); }}
+                          onImported={() => { setImportGroup(null); queryClient.invalidateQueries({ queryKey: ["group-students", g.id] }); queryClient.invalidateQueries({ queryKey: ["groups"] }); }}
                         />
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                   {isExpanded && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <div className="space-y-2 pt-2 border-t border-border/50">
+                      <ol className="border-t border-border/70 max-h-80 overflow-y-auto divide-y divide-border/50">
                         {groupStudents.length === 0 ? (
-                          <p className="text-xs text-muted-foreground py-2">{t("groupsPage.noStudents")}</p>
-                        ) : groupStudents.map((s) => (
-                          <div key={s.id} className="flex items-center justify-between gap-3 text-sm py-1.5">
-                            <span className="truncate">{s.first_name} {s.last_name}</span>
-                            <span className="text-xs text-muted-foreground mono-figure shrink-0">{s.cne}</span>
-                          </div>
+                          <li className="px-5 py-4 text-[13px] text-muted-foreground">{t("groupsPage.noStudents")}</li>
+                        ) : groupStudents.map((st, si) => (
+                          <li key={st.id} className="px-5 py-2.5 flex items-center gap-3 text-sm hover:bg-secondary/30 transition-colors">
+                            <span className="w-6 text-[11px] text-muted-foreground tabular-nums text-right shrink-0">{si + 1}</span>
+                            <span className="w-7 h-7 rounded-lg bg-secondary text-[10.5px] font-bold text-foreground/70 flex items-center justify-center shrink-0">
+                              {`${st.first_name?.[0] ?? ""}${st.last_name?.[0] ?? ""}`.toUpperCase()}
+                            </span>
+                            <span className="truncate flex-1">{st.first_name} {st.last_name}</span>
+                            <span className="text-[11.5px] text-muted-foreground mono-figure shrink-0">{st.cne}</span>
+                          </li>
                         ))}
-                      </div>
+                      </ol>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </motion.article>
             );
           })}
         </AnimatePresence>

@@ -73,6 +73,10 @@ export interface Group {
   status?: "active" | "archived";
   student_count: number;
   teacher_count?: number;
+  /** Admin listing only: non-voided absences recorded for the group. */
+  absence_count?: number;
+  absence_hours?: number;
+  last_session_date?: string | null;
 }
 
 export interface CourseModule {
@@ -243,6 +247,12 @@ export interface RiskStudent {
   recent_late_count: number;
   pending_justifications: number;
   factors: string[];
+  factor_codes: { key: "unexcused_hours" | "recent_absences" | "recent_lates" | "pending"; value: number }[];
+  sessions: number;
+  recent_absence_hours: number;
+  last_absence_date: string | null;
+  /** Cohort-relative 0-100 vigilance score, same formula as the dashboard. */
+  score: number;
 }
 
 export interface AuditLog {

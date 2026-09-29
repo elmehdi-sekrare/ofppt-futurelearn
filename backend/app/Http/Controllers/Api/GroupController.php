@@ -21,7 +21,12 @@ class GroupController extends Controller
         } elseif ($user->role === 'student') {
             $groups = Group::withCount(['students', 'teachers'])->where('id', $user->student->group_id)->where('status', 'active')->get();
         } else {
-            $groups = Group::withCount(['students', 'teachers'])->get();
+            // Absence totals let the admin compare groups without opening each one.
+            $absent = fn ($q) => $q->where('attendance_status', 'absent')->where('status', '!=', 'voided');
+            $groups = Group::withCount(['students', 'teachers', 'absences as absence_count' => $absent])
+                ->withSum(['absences as absence_hours' => $absent], 'hours')
+                ->withMax('absences as last_session_date', 'date')
+                ->get();
         }
 
         return GroupResource::collection($groups);

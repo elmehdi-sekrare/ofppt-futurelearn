@@ -11,6 +11,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StyledSelect } from "@/components/ui/styled-select";
+import ResolveAbsenceDialog, { type ResolveAction } from "@/components/ResolveAbsenceDialog";
+import type { Absence } from "@/types/api";
 
 const statusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
@@ -26,11 +28,8 @@ const attendanceColors: Record<string, string> = {
   excused: "bg-primary/10 text-primary",
 };
 
-/** Local YYYY-MM-DD for <input type="date">; toISOString() would shift by timezone. */
-const todayISO = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+/** The API treats an empty attendance filter as "absent only", so "all" must be explicit. */
+const ALL_ATTENDANCE = "absent,late,present,excused";
 
 const AdminAbsencesPage = () => {
   const { t } = useTranslation();
@@ -38,13 +37,18 @@ const AdminAbsencesPage = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("pending");
+  // Open on every recorded absence. Defaulting to today + pending hid all
+  // history, so the page looked empty whenever no class ran that day.
+  const [statusFilter, setStatusFilter] = useState("");
   const [attendanceFilter, setAttendanceFilter] = useState("absent");
-  const [dateFilter, setDateFilter] = useState(todayISO());
+  const [dateFilter, setDateFilter] = useState("");
+  const [pending, setPending] = useState<{ absence: Absence; action: ResolveAction } | null>(null);
 
-  const { data: absencesRes, isLoading: loadingAbsences } = useQuery({
-    queryKey: ["absences", { group: groupFilter, status: statusFilter, attendance_status: attendanceFilter, date: dateFilter, search }],
-    queryFn: () => api.getAbsences({ group: groupFilter, status: statusFilter, attendance_status: attendanceFilter, date: dateFilter, search }),
+  const attendanceParam = attendanceFilter || ALL_ATTENDANCE;
+  const { data: absencesRes, isLoading: loadingAbsences, isFetching } = useQuery({
+    queryKey: ["absences", { group: groupFilter, status: statusFilter, attendance_status: attendanceParam, date: dateFilter, search }],
+    queryFn: () => api.getAbsences({ group: groupFilter, status: statusFilter, attendance_status: attendanceParam, date: dateFilter, search }),
+    placeholderData: (prev) => prev,
   });
 
   const { data: groupsRes } = useQuery({
@@ -59,16 +63,14 @@ const AdminAbsencesPage = () => {
     mutationFn: ({ id, action, note }: { id: number; action: "justified" | "unjustified" | "voided"; note: string }) => api.resolveAbsence(id, action, note),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["absences"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      setPending(null);
       toast({ title: t("absences.updated"), description: t("absences.updatedDesc") });
     },
     onError: (error: Error) => toast({ title: t("absences.updateFailed"), description: error.message, variant: "destructive" }),
   });
 
-  const resolveAbsence = (id: number, action: "justified" | "unjustified" | "voided") => {
-    const note = window.prompt(action === "voided" ? "Why should this absence be removed from calculations?" : "Add an administrative note:");
-    if (!note?.trim()) return;
-    resolveMutation.mutate({ id, action, note: note.trim() });
-  };
+  const resolveAbsence = (absence: Absence, action: ResolveAction) => setPending({ absence, action });
 
   const filtered = absences; // Filtering is done server-side
   const totalHours = filtered.reduce((sum, a) => sum + a.hours, 0);
@@ -99,6 +101,13 @@ const AdminAbsencesPage = () => {
 
   return (
     <div className="space-y-6">
+      <ResolveAbsenceDialog
+        absence={pending?.absence ?? null}
+        action={pending?.action ?? null}
+        loading={resolveMutation.isPending}
+        onCancel={() => setPending(null)}
+        onConfirm={(note) => pending && resolveMutation.mutate({ id: pending.absence.id, action: pending.action, note })}
+      />
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title mt-2.5">{t("absences.title")}</h1>
@@ -110,24 +119,26 @@ const AdminAbsencesPage = () => {
         </Button>
       </motion.div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <dl className="glass-panel grid grid-cols-2 sm:grid-cols-4 overflow-hidden">
         {(attendanceFilter !== "absent" ? [
-          { label: t("absences.total"), value: absences.length, color: "text-foreground" },
-          { label: t("absences.late"), value: attendanceCounts.late, color: "text-warning" },
-          { label: t("absences.present"), value: attendanceCounts.present, color: "text-success" },
-          { label: t("absences.excused"), value: attendanceCounts.excused, color: "text-primary" },
+          { label: t("absences.total"), value: absences.length, dot: "bg-foreground/60" },
+          { label: t("absences.late"), value: attendanceCounts.late, dot: "bg-warning" },
+          { label: t("absences.present"), value: attendanceCounts.present, dot: "bg-success" },
+          { label: t("absences.excused"), value: attendanceCounts.excused, dot: "bg-primary" },
         ] : [
-          { label: t("absences.total"), value: statusCounts.total, color: "text-foreground" },
-          { label: t("absences.pending"), value: statusCounts.pending, color: "text-warning" },
-          { label: t("absences.justified"), value: statusCounts.justified, color: "text-success" },
-          { label: t("absences.unjustified"), value: statusCounts.unjustified, color: "text-destructive" },
-        ]).map((s) => (
-          <div key={s.label} className="glass-panel p-4 text-center">
-            <p className={`text-2xl font-display font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+          { label: t("absences.total"), value: statusCounts.total, dot: "bg-foreground/60" },
+          { label: t("absences.pending"), value: statusCounts.pending, dot: "bg-warning" },
+          { label: t("absences.justified"), value: statusCounts.justified, dot: "bg-success" },
+          { label: t("absences.unjustified"), value: statusCounts.unjustified, dot: "bg-destructive" },
+        ]).map((s, i) => (
+          <div key={s.label} className={`px-5 py-4 ${i % 2 === 1 ? "border-l border-border/80" : ""} ${i >= 2 ? "border-t sm:border-t-0 border-border/80" : ""} ${i === 2 ? "sm:border-l" : ""}`}>
+            <dt className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />{s.label}
+            </dt>
+            <dd className="mt-1.5 font-display font-bold text-[1.75rem] leading-none tabular-nums">{s.value}</dd>
           </div>
         ))}
-      </div>
+      </dl>
 
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <SearchField value={search} onChange={setSearch} placeholder={t("absences.searchPlaceholder")} className="flex-1 basis-[22rem]" />
@@ -177,20 +188,20 @@ const AdminAbsencesPage = () => {
         </div>
       </div>
 
-      <div className="glass-panel overflow-hidden">
+      <div className={`glass-panel overflow-hidden transition-opacity ${isFetching ? "opacity-70" : ""}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-secondary/30">
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">{t("absences.student")}</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden sm:table-cell">{t("absences.group")}</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">{t("absences.date")}</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">{t("absences.time")}</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">{t("absences.subject")}</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">{t("absences.hours")}</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">{t("absences.attendance")}</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">{t("absences.justification")}</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">{t("absences.adminAction")}</th>
+              <tr className="border-b border-border bg-secondary/40">
+                <th className="th-label">{t("absences.student")}</th>
+                <th className="th-label hidden sm:table-cell">{t("absences.group")}</th>
+                <th className="th-label hidden md:table-cell">{t("absences.date")}</th>
+                <th className="th-label hidden lg:table-cell">{t("absences.time")}</th>
+                <th className="th-label hidden md:table-cell">{t("absences.subject")}</th>
+                <th className="th-label">{t("absences.hours")}</th>
+                <th className="th-label">{t("absences.attendance")}</th>
+                <th className="th-label hidden lg:table-cell">{t("absences.justification")}</th>
+                <th className="th-label !text-right">{t("absences.adminAction")}</th>
               </tr>
             </thead>
             <tbody>
@@ -199,9 +210,9 @@ const AdminAbsencesPage = () => {
                   <motion.tr key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ delay: i * 0.03 }} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <ClipboardList className="w-4 h-4 text-primary" />
-                        </div>
+                        <span className="w-8 h-8 rounded-[9px] bg-primary/[0.09] text-primary flex items-center justify-center shrink-0 text-[11.5px] font-bold">
+                          {a.student_name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+                        </span>
                         <div>
                           <p className="font-medium">{a.student_name}</p>
                           <p className="text-xs text-muted-foreground sm:hidden">{a.group_name} · {a.date}</p>
@@ -227,9 +238,9 @@ const AdminAbsencesPage = () => {
                     </td>
                     <td className="py-3 px-4 text-right">
                       {(a.attendance_status === "absent" || a.attendance_status === "late") && <div className="flex justify-end gap-1 flex-wrap">
-                        {a.status !== "justified" && <Button size="sm" variant="outline" onClick={() => resolveAbsence(a.id, "justified")} className="h-7 text-xs">{t("absences.justify")}</Button>}
-                        {a.status !== "unjustified" && <Button size="sm" variant="ghost" onClick={() => resolveAbsence(a.id, "unjustified")} className="h-7 text-xs">{t("absences.unjustify")}</Button>}
-                        {a.status !== "voided" && <Button size="sm" variant="ghost" onClick={() => resolveAbsence(a.id, "voided")} className="h-7 text-xs">{t("absences.remove")}</Button>}
+                        {a.status !== "justified" && <Button size="sm" variant="outline" onClick={() => resolveAbsence(a, "justified")} className="h-7 text-xs">{t("absences.justify")}</Button>}
+                        {a.status !== "unjustified" && <Button size="sm" variant="ghost" onClick={() => resolveAbsence(a, "unjustified")} className="h-7 text-xs">{t("absences.unjustify")}</Button>}
+                        {a.status !== "voided" && <Button size="sm" variant="ghost" onClick={() => resolveAbsence(a, "voided")} className="h-7 text-xs">{t("absences.remove")}</Button>}
                       </div>}
                     </td>
                   </motion.tr>

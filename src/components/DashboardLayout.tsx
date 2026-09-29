@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList,
-  FileCheck, LogOut, ChevronLeft, Menu, UserCircle, Settings, Search,
+  FileCheck, LogOut, ChevronLeft, ChevronDown, Menu, UserCircle, Settings, Search,
   Printer, HelpCircle, ShieldAlert, History, FolderPlus, BookOpenCheck
 } from "lucide-react";
 import Breadcrumbs from "./Breadcrumbs";
@@ -80,6 +80,9 @@ const DashboardLayout = ({ children, role }: Props) => {
   const roleKey = role.charAt(0).toUpperCase() + role.slice(1);
   const displayName = user ? `${user.first_name} ${user.last_name}` : t(`layout.role${roleKey}`);
   const initials = user ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase() : "";
+
+  // The command palette listens for Ctrl+K on window
+  const openSearch = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
 
   const handleLogout = async () => {
     await logout();
@@ -184,43 +187,49 @@ const DashboardLayout = ({ children, role }: Props) => {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="h-[4.25rem] border-b border-border flex items-center justify-between px-4 lg:px-6 shrink-0 bg-card relative z-[102]">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} aria-label={t("layout.searchPlaceholder")} className="lg:hidden p-1.5 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-              <Menu className="w-5 h-5" />
-            </button>
-            <div>
-              <h2 className="font-display font-semibold text-[0.95rem] leading-tight">{displayName}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{t(`layout.role${roleKey}`)} · {t("app.shortName")}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { const e = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }); window.dispatchEvent(e); }}
-              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span>{t("layout.searchPlaceholder")}</span>
-              <kbd className="ml-3 px-1.5 py-0.5 rounded border border-border bg-card font-mono text-[10px]">Ctrl+K</kbd>
-            </button>
+        {/* Top bar: search on the left, tools and identity on the right */}
+        <header className="h-[4.25rem] border-b border-border flex items-center gap-3 px-4 lg:px-6 shrink-0 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 relative z-[102]">
+          <button onClick={() => setMobileOpen(true)} aria-label={t("layout.openMenu")} className="lg:hidden p-2 -ml-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={openSearch}
+            className="group flex-1 max-w-[30rem] flex items-center gap-2.5 h-10 pl-3.5 pr-2 rounded-lg bg-secondary/70 border border-transparent text-[14px] text-muted-foreground text-left transition-[border-color,background-color,box-shadow] duration-200 hover:bg-card hover:border-border hover:shadow-[var(--shadow-card)]"
+          >
+            <Search className="w-4 h-4 shrink-0 transition-colors group-hover:text-primary" />
+            <span className="flex-1 truncate">{t("layout.searchHint")}</span>
+            <kbd className="hidden md:inline-flex items-center gap-0.5 h-6 px-1.5 rounded-md border border-border bg-card font-mono text-[10.5px] text-muted-foreground">
+              Ctrl K
+            </kbd>
+          </button>
+
+          <div className="ml-auto flex items-center gap-1.5">
             <LanguageSwitcher />
             <ThemeToggle />
             <NotificationPanel />
+            <span className="hidden sm:block w-px h-7 bg-border mx-2" aria-hidden="true" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   aria-label={t("layout.accountSettings")}
-                  className="w-9 h-9 rounded-full bg-primary/10 text-primary hover:bg-primary/[0.18] flex items-center justify-center transition-colors text-[13px] font-semibold"
+                  className="group flex items-center gap-2.5 h-10 pl-1 pr-1.5 sm:pr-2.5 rounded-lg hover:bg-secondary transition-colors data-[state=open]:bg-secondary"
                 >
-                  {initials || <UserCircle className="w-5 h-5" />}
+                  <span className="w-8 h-8 rounded-[9px] bg-primary text-primary-foreground flex items-center justify-center text-[12.5px] font-bold tracking-wide shadow-[0_2px_6px_-2px_hsl(var(--primary)/0.5)]">
+                    {initials || <UserCircle className="w-4 h-4" />}
+                  </span>
+                  <span className="hidden sm:flex flex-col items-start leading-tight max-w-[11rem]">
+                    <span className="text-[13.5px] font-semibold text-foreground truncate max-w-full">{displayName}</span>
+                    <span className="text-[11.5px] text-muted-foreground">{t(`layout.role${roleKey}`)}</span>
+                  </span>
+                  <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel>
                   <div className="space-y-0.5">
                     <p className="text-sm font-medium">{displayName}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

@@ -333,8 +333,35 @@
     "academicYear": "Academic year 2025-2026",
     "allGroupsLabel": "All groups",
     "noData": "No data for these filters.",
-    "recordCount": "{{count}} attendance records",
-    "studentCount": "{{count}} students"
+    "allTime": "All time",
+    "institution": "Office for Vocational Training and Employment Promotion",
+    "period": "Period",
+    "signPrepared": "Prepared by",
+    "signDirector": "Approved by management",
+    "schoolYear": "Training year {{year}}",
+    "schoolYearShort": "Training year",
+    "popupBlocked": "Window blocked",
+    "popupBlockedHint": "Allow pop-ups for this site, then try again.",
+    "step1": "1 · Report type",
+    "step2": "2 · Period",
+    "step3": "3 · Group",
+    "preset": {
+      "30d": "Last 30 days",
+      "month": "This month",
+      "lastMonth": "Last month",
+      "year": "Training year",
+      "all": "All",
+      "custom": "Custom"
+    },
+    "moreRows_one": "+ {{count}} more row in the printed document",
+    "moreRows_other": "+ {{count}} more rows in the printed document",
+    "recordCount_one": "{{count}} record",
+    "recordCount_other": "{{count}} records",
+    "studentCount_one": "{{count}} student",
+    "studentCount_other": "{{count}} students",
+    "settings": "Settings",
+    "sessionsCount_one": "{{absent}} absences · {{count}} roll-call line",
+    "sessionsCount_other": "{{absent}} absences · {{count}} roll-call lines"
   },
   "justifications": {
     "title": "Justifications",
@@ -360,7 +387,12 @@
     "remove": "Remove",
     "allCaughtUp": "All caught up",
     "resolvedCount": "{{count}} recently resolved records",
-    "late": "Late"
+    "late": "Late",
+    "waitingCount_one": "{{count}} absence waiting for a decision",
+    "waitingCount_other": "{{count}} absences waiting for a decision",
+    "byAdmin": "by admin",
+    "seeResolved_one": "See the handled record",
+    "seeResolved_other": "See the {{count}} handled records"
   },
   "audit": {
     "title": "Audit Log",
@@ -369,7 +401,44 @@
     "loadFailed": "Could not load the audit trail.",
     "noMatch": "No audit records match your search.",
     "subtitle": "A permanent record of attendance and justification decisions.",
-    "adminOnly": "Admin-only access"
+    "adminOnly": "Admin-only access",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "system": "System",
+    "events": {
+      "attendance_marked": "Attendance recorded",
+      "absence_justified": "Absence justified",
+      "absence_unjustified": "Justification rejected",
+      "absence_voided": "Record voided",
+      "attendance_risk_alert": "Attendance alert raised",
+      "students_imported": "Student list imported"
+    },
+    "statEvents": "Events",
+    "statToday": "Today",
+    "statDecisions": "Decisions",
+    "statActors": "People",
+    "filterLabel": "Filter by event type",
+    "category": {
+      "all": "All",
+      "attendance": "Roll calls",
+      "decisions": "Decisions",
+      "alerts": "Alerts",
+      "imports": "Imports",
+      "other": "Other"
+    },
+    "entries_one": "{{count}} entry",
+    "entries_other": "{{count}} entries",
+    "sessionTitle_one": "Roll call for {{count}} student — {{subject}}",
+    "sessionTitle_other": "Roll call for {{count}} students — {{subject}}",
+    "status": {
+      "present": "present",
+      "late": "late",
+      "absent": "absent",
+      "excused": "excused"
+    },
+    "importMeta": "{{created}} created · {{updated}} linked · {{skipped}} skipped",
+    "showDetail": "Show detail",
+    "hideDetail": "Hide detail"
   },
   "risk": {
     "title": "Risk Dashboard",
@@ -389,7 +458,39 @@
     "whyFlagged": "Why flagged",
     "noFactors": "No current risk factors",
     "noMatch": "No students match these filters.",
-    "inLast30": "{{count}} in 30 days"
+    "inLast30": "{{count}} in last 30d",
+    "rulesTitle": "Official alert rules",
+    "rules": [
+      "10 h or more of unjustified absence",
+      "3 or more absences in 30 days",
+      "3 or more late arrivals in 30 days",
+      "A justification awaiting a decision"
+    ],
+    "inAlert": "Students in alert",
+    "watchlistNote_one": "No official alert yet, but {{count}} student has high vigilance.",
+    "watchlistNote_other": "{{count}} students without an official alert have high vigilance.",
+    "monitoredNote_one": "{{count}} student tracked from recorded sessions.",
+    "monitoredNote_other": "{{count}} students tracked from recorded sessions.",
+    "distribution": "Students by alert level",
+    "sortLevel": "Sort by alert level",
+    "sortScore": "Sort by vigilance",
+    "sortUnexcused": "Sort by unjustified hours",
+    "sortName": "Sort by name",
+    "showing": "{{count}} of {{total}} students",
+    "clearFilter": "Clear filter",
+    "officialAlert": "Alert",
+    "vigilance": "Vigilance",
+    "unexcusedThreshold": "Unjustified limit",
+    "lastAbsence": "last absent {{date}}",
+    "factor": {
+      "unexcused_hours": "{{value}}h unjustified",
+      "recent_absences": "{{count}} absences in 30d",
+      "recent_lates": "{{count}} late in 30d",
+      "pending_one": "{{count}} justification pending",
+      "pending_other": "{{count}} justifications pending"
+    },
+    "belowButWatch": "Below the limits, but high vigilance",
+    "vigilanceExplainer": "Vigilance: a 0–100 score relative to the cohort (share of sessions missed, unjustified hours, recency). It is the same score as on the dashboard."
   },
   "account": {
     "title": "Account Settings"
@@ -437,7 +538,9 @@
     "roleStudent": "Student",
     "skipToContent": "Skip to content",
     "toLight": "Switch to light mode",
-    "toDark": "Switch to dark mode"
+    "toDark": "Switch to dark mode",
+    "searchHint": "Search students, teachers, groups…",
+    "openMenu": "Open menu"
   },
   "student": {
     "subtitle": "Your attendance summary at a glance",
@@ -539,7 +642,16 @@
     "reasonRate": "{{value}}% of sessions missed",
     "reasonUnjustified": "{{value}}h unjustified",
     "reasonLate": "{{count}} late arrival(s)",
-    "patternDetail": "{{count}} of {{total}} absences on a {{day}}"
+    "patternDetail": "{{count}} of {{total}} absences on a {{day}}",
+    "filterAll": "All",
+    "patternFilter": "Filter by level",
+    "patternCount_one": "{{count}} pattern found",
+    "patternCount_other": "{{count}} patterns found",
+    "patternShareOn_one": "of absences fall on a {{day}} ({{count}} in total)",
+    "patternShareOn_other": "of absences fall on a {{day}} ({{count}} in total)",
+    "patternRegularity": "{{value}}% regular",
+    "patternMethod": "Flagged from 2 absences on the same weekday.",
+    "patternOpenRisk": "Open risk view"
   },
   "heatmap": {
     "empty": "No absences in this period",
@@ -572,14 +684,28 @@
     "showStudents": "Show students",
     "hideStudents": "Hide students",
     "noStudents": "No students in this group",
-    "studentsCount": "{{count}} students",
-    "teachersCount": "{{count}} teachers",
     "rosterSaved": "Roster saved",
     "rosterSavedDesc": "{{created}} new, {{updated}} attached, {{skipped}} skipped.",
     "previewFailed": "Could not read the file",
     "importFailed": "Import could not be saved",
     "createdWithImport": "Group created · {{count}} students imported",
-    "importAfterCreate": "Group created, but the import failed"
+    "importAfterCreate": "Group created, but the import failed",
+    "selectedCount_one": "{{count}} group selected",
+    "selectedCount_other": "{{count}} groups selected",
+    "groupCount_one": "{{count}} group",
+    "groupCount_other": "{{count}} groups",
+    "archiveOne": "Archive group",
+    "metricStudents": "Students",
+    "metricTeachers": "Teachers",
+    "metricHours": "Absences",
+    "noTeacher": "No teacher assigned to this group",
+    "lastSession_one": "Last session {{date}} · {{count}} absence",
+    "lastSession_other": "Last session {{date}} · {{count}} absences",
+    "noSession": "No session recorded yet",
+    "studentsCount_one": "{{count}} student",
+    "studentsCount_other": "{{count}} students",
+    "teachersCount_one": "{{count}} teacher",
+    "teachersCount_other": "{{count}} teachers"
   },
   "studentsPage": {
     "addTo": "Add to {{group}}",
@@ -610,5 +736,64 @@
     "justificationSubmitted": "Justification submitted",
     "justificationApproved": "Justification approved",
     "justificationRejected": "Justification rejected"
+  },
+  "trend": {
+    "period": "Period",
+    "days_one": "{{count}}d",
+    "days_other": "{{count}}d",
+    "subtitle_one": "Absence hours per day · last day",
+    "subtitle_other": "Absence hours per day · last {{count}} days",
+    "vsPrevious_one": "vs {{hours}}h the day before",
+    "vsPrevious_other": "vs {{hours}}h in the previous {{count}} days",
+    "inPeriod_one": "of absence in the last day",
+    "inPeriod_other": "of absence in the last {{count}} days",
+    "records": "Absences logged",
+    "activeDays": "Days affected",
+    "avgPerDay": "Avg per affected day",
+    "peak": "Peak",
+    "dailyMean": "avg {{hours}}h/day",
+    "recordsCount_one": "{{count}} absence logged",
+    "recordsCount_other": "{{count}} absences logged",
+    "empty_one": "No absences yesterday",
+    "empty_other": "No absences in {{count}} days"
+  },
+  "resolve": {
+    "title": {
+      "justified": "Justify absence",
+      "unjustified": "Reject justification",
+      "voided": "Void record"
+    },
+    "hint": {
+      "justified": "The student handed in an acceptable paper justification.",
+      "unjustified": "The absence stays counted as unjustified.",
+      "voided": "The record is removed from every calculation. Use only for data-entry mistakes."
+    },
+    "confirm": {
+      "justified": "Justify",
+      "unjustified": "Reject",
+      "voided": "Void record"
+    },
+    "presets": {
+      "justified": [
+        "Medical certificate",
+        "Official summons",
+        "Family bereavement",
+        "Approved by management"
+      ],
+      "unjustified": [
+        "No document provided",
+        "Document submitted late",
+        "Document not acceptable"
+      ],
+      "voided": [
+        "Data-entry mistake",
+        "Session cancelled",
+        "Student was present"
+      ]
+    },
+    "noteLabel": "Reason for the decision",
+    "notePlaceholder": "Name the document received or the reason for the decision…",
+    "noteRequired": "A reason is required: it is kept in the audit log.",
+    "shortcut": "Ctrl + Enter to confirm"
   }
 }

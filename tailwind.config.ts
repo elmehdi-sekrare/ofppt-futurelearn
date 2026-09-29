@@ -17,6 +17,8 @@ export default {
         sans: ['Source Sans 3', 'system-ui', 'sans-serif'],
         display: ['Manrope', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        // Documents only (report preview and print): gives official papers an academic voice
+        serif: ['Source Serif 4', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

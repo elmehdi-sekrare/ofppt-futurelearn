@@ -333,8 +333,35 @@
     "academicYear": "Année scolaire 2025-2026",
     "allGroupsLabel": "Tous les groupes",
     "noData": "Aucune donnée pour ces filtres.",
-    "recordCount": "{{count}} enregistrements de présence",
-    "studentCount": "{{count}} élèves"
+    "allTime": "Toute la période",
+    "institution": "Office de la Formation Professionnelle et de la Promotion du Travail",
+    "period": "Période",
+    "signPrepared": "Établi par",
+    "signDirector": "Visa de la direction",
+    "schoolYear": "Année de formation {{year}}",
+    "schoolYearShort": "Année de formation",
+    "popupBlocked": "Fenêtre bloquée",
+    "popupBlockedHint": "Autorisez les fenêtres pop-up pour ce site, puis réessayez.",
+    "step1": "1 · Type de rapport",
+    "step2": "2 · Période",
+    "step3": "3 · Groupe",
+    "preset": {
+      "30d": "30 derniers jours",
+      "month": "Ce mois",
+      "lastMonth": "Mois dernier",
+      "year": "Année de formation",
+      "all": "Tout",
+      "custom": "Personnalisée"
+    },
+    "moreRows_one": "+ {{count}} ligne supplémentaire dans le document imprimé",
+    "moreRows_other": "+ {{count}} lignes supplémentaires dans le document imprimé",
+    "recordCount_one": "{{count}} enregistrement",
+    "recordCount_other": "{{count}} enregistrements",
+    "studentCount_one": "{{count}} stagiaire",
+    "studentCount_other": "{{count}} stagiaires",
+    "settings": "Paramètres",
+    "sessionsCount_one": "{{absent}} absences · {{count}} ligne d'appel",
+    "sessionsCount_other": "{{absent}} absences · {{count}} lignes d'appel"
   },
   "justifications": {
     "title": "Justifications",
@@ -360,7 +387,12 @@
     "remove": "Annuler",
     "allCaughtUp": "Tout est à jour",
     "resolvedCount": "{{count}} dossiers récemment traités",
-    "late": "Retard"
+    "late": "Retard",
+    "waitingCount_one": "{{count}} absence en attente de décision",
+    "waitingCount_other": "{{count}} absences en attente de décision",
+    "byAdmin": "par l'administration",
+    "seeResolved_one": "Voir le dossier traité",
+    "seeResolved_other": "Voir les {{count}} dossiers traités"
   },
   "audit": {
     "title": "Journal d’audit",
@@ -369,7 +401,44 @@
     "loadFailed": "Impossible de charger le journal d'audit.",
     "noMatch": "Aucun enregistrement ne correspond à votre recherche.",
     "subtitle": "Registre permanent des décisions de présence et de justification.",
-    "adminOnly": "Accès réservé aux administrateurs"
+    "adminOnly": "Accès réservé aux administrateurs",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "system": "Système",
+    "events": {
+      "attendance_marked": "Appel enregistré",
+      "absence_justified": "Absence justifiée",
+      "absence_unjustified": "Justification refusée",
+      "absence_voided": "Enregistrement annulé",
+      "attendance_risk_alert": "Alerte d'assiduité levée",
+      "students_imported": "Liste de stagiaires importée"
+    },
+    "statEvents": "Événements",
+    "statToday": "Aujourd'hui",
+    "statDecisions": "Décisions",
+    "statActors": "Intervenants",
+    "filterLabel": "Filtrer par type d'événement",
+    "category": {
+      "all": "Tout",
+      "attendance": "Appels",
+      "decisions": "Décisions",
+      "alerts": "Alertes",
+      "imports": "Imports",
+      "other": "Autres"
+    },
+    "entries_one": "{{count}} entrée",
+    "entries_other": "{{count}} entrées",
+    "sessionTitle_one": "Appel de {{count}} stagiaire — {{subject}}",
+    "sessionTitle_other": "Appel de {{count}} stagiaires — {{subject}}",
+    "status": {
+      "present": "présents",
+      "late": "en retard",
+      "absent": "absents",
+      "excused": "excusés"
+    },
+    "importMeta": "{{created}} créés · {{updated}} rattachés · {{skipped}} ignorés",
+    "showDetail": "Voir le détail",
+    "hideDetail": "Masquer le détail"
   },
   "risk": {
     "title": "Tableau des risques",
@@ -389,7 +458,39 @@
     "whyFlagged": "Motif de l'alerte",
     "noFactors": "Aucun facteur de risque actuel",
     "noMatch": "Aucun élève ne correspond à ces filtres.",
-    "inLast30": "{{count}} sur 30 jours"
+    "inLast30": "dont {{count}} sur 30 j",
+    "rulesTitle": "Règles d'alerte officielles",
+    "rules": [
+      "10 h ou plus d'absences non justifiées",
+      "3 absences ou plus sur 30 jours",
+      "3 retards ou plus sur 30 jours",
+      "Un justificatif en attente de décision"
+    ],
+    "inAlert": "Stagiaires en alerte",
+    "watchlistNote_one": "Aucune alerte officielle n'est levée, mais {{count}} stagiaire a une vigilance élevée.",
+    "watchlistNote_other": "{{count}} stagiaires sans alerte officielle ont une vigilance élevée.",
+    "monitoredNote_one": "{{count}} stagiaire suivi à partir des séances enregistrées.",
+    "monitoredNote_other": "{{count}} stagiaires suivis à partir des séances enregistrées.",
+    "distribution": "Répartition des stagiaires par niveau d'alerte",
+    "sortLevel": "Trier par niveau d'alerte",
+    "sortScore": "Trier par vigilance",
+    "sortUnexcused": "Trier par heures non justifiées",
+    "sortName": "Trier par nom",
+    "showing": "{{count}} sur {{total}} stagiaires",
+    "clearFilter": "Effacer le filtre",
+    "officialAlert": "Alerte",
+    "vigilance": "Vigilance",
+    "unexcusedThreshold": "Seuil non justifié",
+    "lastAbsence": "dernière absence le {{date}}",
+    "factor": {
+      "unexcused_hours": "{{value}} h non justifiées",
+      "recent_absences": "{{count}} absences en 30 j",
+      "recent_lates": "{{count}} retards en 30 j",
+      "pending_one": "{{count}} justificatif en attente",
+      "pending_other": "{{count}} justificatifs en attente"
+    },
+    "belowButWatch": "Sous les seuils, mais vigilance élevée",
+    "vigilanceExplainer": "Vigilance : score de 0 à 100 relatif à la promotion (part de séances manquées, heures non justifiées, récence). C'est le même score que sur le tableau de bord."
   },
   "account": {
     "title": "Paramètres du compte"
@@ -437,7 +538,9 @@
     "roleStudent": "Stagiaire",
     "skipToContent": "Aller au contenu",
     "toLight": "Passer en mode clair",
-    "toDark": "Passer en mode sombre"
+    "toDark": "Passer en mode sombre",
+    "searchHint": "Rechercher un stagiaire, un enseignant, un groupe…",
+    "openMenu": "Ouvrir le menu"
   },
   "student": {
     "subtitle": "Votre résumé de présence en un coup d’œil",
@@ -539,7 +642,16 @@
     "reasonRate": "{{value}} % des séances manquées",
     "reasonUnjustified": "{{value}}h non justifiées",
     "reasonLate": "{{count}} retard(s)",
-    "patternDetail": "{{count}} absences sur {{total}} un {{day}}"
+    "patternDetail": "{{count}} absences sur {{total}} un {{day}}",
+    "filterAll": "Tous",
+    "patternFilter": "Filtrer par niveau",
+    "patternCount_one": "{{count}} tendance détectée",
+    "patternCount_other": "{{count}} tendances détectées",
+    "patternShareOn_one": "des absences tombent un {{day}} ({{count}} au total)",
+    "patternShareOn_other": "des absences tombent un {{day}} ({{count}} au total)",
+    "patternRegularity": "Régularité {{value}} %",
+    "patternMethod": "Signalé dès 2 absences sur le même jour de la semaine.",
+    "patternOpenRisk": "Voir la vigilance"
   },
   "heatmap": {
     "empty": "Aucune absence sur cette période",
@@ -572,14 +684,28 @@
     "showStudents": "Voir les élèves",
     "hideStudents": "Masquer les élèves",
     "noStudents": "Aucun élève dans ce groupe",
-    "studentsCount": "{{count}} élèves",
-    "teachersCount": "{{count}} enseignants",
     "rosterSaved": "Liste enregistrée",
     "rosterSavedDesc": "{{created}} nouveaux, {{updated}} rattachés, {{skipped}} ignorés.",
     "previewFailed": "Échec de la lecture du fichier",
     "importFailed": "L'import n'a pas pu être enregistré",
     "createdWithImport": "Groupe créé · {{count}} élèves importés",
-    "importAfterCreate": "Groupe créé, mais l'import a échoué"
+    "importAfterCreate": "Groupe créé, mais l'import a échoué",
+    "selectedCount_one": "{{count}} groupe sélectionné",
+    "selectedCount_other": "{{count}} groupes sélectionnés",
+    "groupCount_one": "{{count}} groupe",
+    "groupCount_other": "{{count}} groupes",
+    "archiveOne": "Archiver le groupe",
+    "metricStudents": "Stagiaires",
+    "metricTeachers": "Enseignants",
+    "metricHours": "Absences",
+    "noTeacher": "Aucun enseignant affecté à ce groupe",
+    "lastSession_one": "Dernière séance le {{date}} · {{count}} absence",
+    "lastSession_other": "Dernière séance le {{date}} · {{count}} absences",
+    "noSession": "Aucune séance enregistrée pour l'instant",
+    "studentsCount_one": "{{count}} élève",
+    "studentsCount_other": "{{count}} élèves",
+    "teachersCount_one": "{{count}} enseignant",
+    "teachersCount_other": "{{count}} enseignants"
   },
   "studentsPage": {
     "addTo": "Ajouter à {{group}}",
@@ -610,5 +736,64 @@
     "justificationSubmitted": "Justification déposée",
     "justificationApproved": "Justification acceptée",
     "justificationRejected": "Justification refusée"
+  },
+  "trend": {
+    "period": "Période",
+    "days_one": "{{count}} j",
+    "days_other": "{{count}} j",
+    "subtitle_one": "Heures d'absence par jour · dernier jour",
+    "subtitle_other": "Heures d'absence par jour · {{count}} derniers jours",
+    "vsPrevious_one": "contre {{hours}} h le jour précédent",
+    "vsPrevious_other": "contre {{hours}} h sur les {{count}} jours précédents",
+    "inPeriod_one": "d'absence sur le dernier jour",
+    "inPeriod_other": "d'absence sur les {{count}} derniers jours",
+    "records": "Absences saisies",
+    "activeDays": "Jours touchés",
+    "avgPerDay": "Moy. par jour touché",
+    "peak": "Pic",
+    "dailyMean": "moy. {{hours}} h/j",
+    "recordsCount_one": "{{count}} absence enregistrée",
+    "recordsCount_other": "{{count}} absences enregistrées",
+    "empty_one": "Aucune absence hier",
+    "empty_other": "Aucune absence sur {{count}} jours"
+  },
+  "resolve": {
+    "title": {
+      "justified": "Justifier l'absence",
+      "unjustified": "Refuser la justification",
+      "voided": "Annuler l'enregistrement"
+    },
+    "hint": {
+      "justified": "Le stagiaire a déposé un justificatif papier recevable.",
+      "unjustified": "L'absence reste comptée comme non justifiée.",
+      "voided": "L'enregistrement est retiré de tous les calculs. À réserver aux erreurs de saisie."
+    },
+    "confirm": {
+      "justified": "Justifier",
+      "unjustified": "Refuser",
+      "voided": "Annuler l'enregistrement"
+    },
+    "presets": {
+      "justified": [
+        "Certificat médical",
+        "Convocation administrative",
+        "Décès dans la famille",
+        "Autorisation de la direction"
+      ],
+      "unjustified": [
+        "Aucun justificatif déposé",
+        "Justificatif hors délai",
+        "Justificatif non recevable"
+      ],
+      "voided": [
+        "Erreur de saisie",
+        "Séance annulée",
+        "Stagiaire présent"
+      ]
+    },
+    "noteLabel": "Motif de la décision",
+    "notePlaceholder": "Précisez le document reçu ou la raison de la décision…",
+    "noteRequired": "Un motif est obligatoire : il est conservé dans le journal d'audit.",
+    "shortcut": "Ctrl + Entrée pour valider"
   }
 }

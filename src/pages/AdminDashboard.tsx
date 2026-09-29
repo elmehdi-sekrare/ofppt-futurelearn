@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Users, GraduationCap, Clock, FileCheck, AlertTriangle, Shield, ShieldAlert } from "lucide-react";
 import StatCard from "@/components/StatCard";
-import AttendanceChart from "@/components/AttendanceChart";
+import AbsenceTrendPanel from "@/components/AbsenceTrendPanel";
 import RecentAbsences from "@/components/RecentAbsences";
 import AttendanceHeatmap from "@/components/AttendanceHeatmap";
 import AIRiskPredictor from "@/components/AIRiskPredictor";
@@ -80,19 +80,7 @@ const AdminDashboard = () => {
 
       {/* Trend takes the width it needs; heatmap and system info stack beside it */}
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <article className="xl:col-span-2 glass-panel p-6">
-          <header className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <h2 className="font-display font-semibold text-xl">{t("dashboard.chartTitle")}</h2>
-              <p className="text-[13px] text-muted-foreground mt-1">{t("dashboard.chartSubtitle")}</p>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              {t("dashboard.legendAbsence")}
-            </div>
-          </header>
-          <AttendanceChart />
-        </article>
+        <AbsenceTrendPanel />
 
         <div className="space-y-5">
           <article className="glass-panel p-6">
