@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { X, Clock, CalendarX, AlarmClock, TrendingUp } from "lucide-react";
+import { X, Clock, CalendarX, AlarmClock, TrendingUp, BookOpen, UserRound, FileCheck2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -196,20 +196,47 @@ const StudentStatsDialog = ({ student, onClose }: Props) => {
                     ) : (
                       <ul className="divide-y divide-border rounded-xl border border-border overflow-hidden">
                         {stats.recent.map((record) => (
-                          <li key={record.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-card">
-                            <div className="min-w-0">
-                              <p className="text-sm tabular-nums">{record.date}</p>
-                              <p className="text-[11px] text-muted-foreground capitalize">{t(`absences.${record.status}`, record.status)}</p>
+                          <li key={record.id} className="px-3.5 py-3 bg-card">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-sm font-medium tabular-nums">{record.date}</p>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {record.hours > 0 && <span className="text-sm font-medium tabular-nums">{record.hours}h</span>}
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                  record.attendance_status === "absent" ? "bg-destructive/10 text-destructive"
+                                  : record.attendance_status === "late" ? "bg-warning/10 text-warning"
+                                  : "bg-success/10 text-success"}`}>
+                                  {t(`absences.${record.attendance_status}`, record.attendance_status)}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {record.hours > 0 && <span className="text-sm font-medium tabular-nums">{record.hours}h</span>}
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                record.attendance_status === "absent" ? "bg-destructive/10 text-destructive"
-                                : record.attendance_status === "late" ? "bg-warning/10 text-warning"
-                                : "bg-success/10 text-success"}`}>
-                                {t(`absences.${record.attendance_status}`, record.attendance_status)}
-                              </span>
-                            </div>
+
+                            {/* Which session, and which trainer recorded it */}
+                            <dl className="mt-1.5 space-y-1">
+                              {(record.subject || record.start_time) && (
+                                <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                                  <BookOpen className="w-3 h-3 mt-[2px] shrink-0" />
+                                  <dt className="sr-only">{t("stats.session")}</dt>
+                                  <dd className="min-w-0">
+                                    {record.subject || t("stats.sessionUnknown")}
+                                    {record.start_time && (
+                                      <span className="tabular-nums"> · {record.start_time}{record.end_time ? `–${record.end_time}` : ""}</span>
+                                    )}
+                                  </dd>
+                                </div>
+                              )}
+                              {record.teacher_name && (
+                                <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                                  <UserRound className="w-3 h-3 mt-[2px] shrink-0" />
+                                  <dt className="sr-only">{t("dashboard.roleTeacher")}</dt>
+                                  <dd className="truncate">{record.teacher_name}</dd>
+                                </div>
+                              )}
+                              <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                                <FileCheck2 className="w-3 h-3 mt-[2px] shrink-0" />
+                                <dt className="sr-only">{t("absences.status")}</dt>
+                                <dd>{t(`absences.${record.status}`, record.status)}</dd>
+                              </div>
+                            </dl>
                           </li>
                         ))}
                       </ul>

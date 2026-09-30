@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Group;
+use App\Models\Module;
+use App\Models\Absence;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
@@ -132,7 +134,7 @@ class TeacherRosterAndModuleTest extends TestCase
         $this->assertDatabaseMissing('groups', ['id' => $second->id]);
     }
 
-    public function test_permanent_group_deletion_is_blocked_when_students_exist(): void
+    public function test_group_deletion_is_blocked_when_a_trainee_has_no_other_group(): void
     {
         $admin = $this->admin();
         $group = Group::create(['name' => 'PROTECTED-GROUP', 'level' => '2ème année', 'status' => 'archived']);
@@ -141,7 +143,59 @@ class TeacherRosterAndModuleTest extends TestCase
 
         $this->deleteJson('/api/groups-bulk', ['group_ids' => [$group->id], 'action' => 'delete'])
             ->assertStatus(422)
-            ->assertJsonPath('message', "Group {$group->name} cannot be permanently deleted while it has students or attendance history. Archive it instead.");
+            ->assertJsonPath('message', "Group {$group->name} cannot be deleted because some trainees belong to no other group. Move them to another group first, or delete those trainees.");
+
+        $this->assertDatabaseHas('groups', ['id' => $group->id]);
+    }
+
+    public function test_archived_group_can_be_deleted_and_only_detaches_its_trainees(): void
+    {
+        $admin = $this->admin();
+        $keep = Group::create(['name' => 'KEEP-GROUP', 'level' => '2ème année']);
+        $spare = Group::create(['name' => 'SPARE-GROUP', 'level' => '2ème année', 'status' => 'archived']);
+
+        // The trainee belongs to both, so dropping SPARE leaves them in KEEP.
+        $student = $this->student($keep, 'TA180011');
+        $student->groups()->syncWithoutDetaching([$spare->id]);
+        $student->update(['group_id' => $spare->id]);
+
+        Sanctum::actingAs($admin);
+        $this->deleteJson('/api/groups-bulk', ['group_ids' => [$spare->id], 'action' => 'delete'])
+            ->assertOk()
+            ->assertJsonPath('data.deleted', 1);
+
+        $this->assertDatabaseMissing('groups', ['id' => $spare->id]);
+        // The trainee survives and is re-homed on their remaining group.
+        $this->assertDatabaseHas('students', ['id' => $student->id, 'group_id' => $keep->id]);
+        $this->assertDatabaseHas('group_students', ['student_id' => $student->id, 'group_id' => $keep->id]);
+    }
+
+    public function test_group_deletion_never_destroys_attendance_history(): void
+    {
+        $admin = $this->admin();
+        $keep = Group::create(['name' => 'HISTORY-KEEP', 'level' => '2ème année']);
+        $group = Group::create(['name' => 'HISTORY-GROUP', 'level' => '2ème année', 'status' => 'archived']);
+
+        $student = $this->student($keep, 'TA180012');
+        $student->groups()->syncWithoutDetaching([$group->id]);
+
+        $teacherUser = User::create(['first_name' => 'Form', 'last_name' => 'Ateur', 'email' => 'hist.trainer@ofppt.test', 'password' => 'password123', 'role' => 'teacher', 'is_active' => true]);
+        $teacher = Teacher::create(['user_id' => $teacherUser->id]);
+        $module = Module::create(['teacher_id' => $teacher->id, 'name' => 'Histoire']);
+
+        Absence::create([
+            'student_id' => $student->id, 'teacher_id' => $teacher->id, 'module_id' => $module->id,
+            'group_id' => $group->id, 'date' => '2026-09-14', 'start_time' => '08:00', 'end_time' => '10:00',
+            'hours' => 2, 'subject' => 'Histoire', 'attendance_status' => 'absent', 'status' => 'unjustified',
+        ]);
+
+        Sanctum::actingAs($admin);
+        $this->deleteJson('/api/groups-bulk', ['group_ids' => [$group->id], 'action' => 'delete'])
+            ->assertStatus(422)
+            ->assertJsonPath('message', "Group {$group->name} still holds 1 attendance records and cannot be deleted. Archiving keeps the group out of the way without losing that history.");
+
+        $this->assertDatabaseHas('groups', ['id' => $group->id]);
+        $this->assertSame(1, Absence::where('group_id', $group->id)->count());
     }
 
     public function test_teacher_email_uses_firstname_lastname_and_stays_unique(): void

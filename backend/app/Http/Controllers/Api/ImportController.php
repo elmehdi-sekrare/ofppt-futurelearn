@@ -72,6 +72,9 @@ class ImportController extends Controller
                 if ($existing) {
                     $existing->user->update(['first_name' => $firstName, 'last_name' => $lastName]);
                     $existing->groups()->syncWithoutDetaching([$group->id]);
+                    // Keep the legacy single-group column pointing at the most
+                    // recent group so listings that still read it stay correct.
+                    $existing->update(['group_id' => $group->id]);
                     $updated++;
                     continue;
                 }

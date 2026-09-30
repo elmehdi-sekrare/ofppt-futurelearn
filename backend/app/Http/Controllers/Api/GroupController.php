@@ -104,16 +104,48 @@ class GroupController extends Controller
 
         if ($data['action'] === 'delete') {
             $groups = Group::withCount(['students', 'absences'])->whereIn('id', $data['group_ids'])->get();
-            $blocked = $groups->first(fn (Group $group) => $group->students_count > 0 || $group->absences_count > 0);
-            if ($blocked) {
-                return response()->json(['message' => "Group {$blocked->name} cannot be permanently deleted while it has students or attendance history. Archive it instead."], 422);
+
+            // Attendance history is the one thing we will not destroy: absences
+            // reference the group with restrictOnDelete, and losing them would
+            // erase the record a student's file is built on. Students themselves
+            // are only detached — they keep their account and their other groups.
+            $withHistory = $groups->first(fn (Group $group) => $group->absences_count > 0);
+            if ($withHistory) {
+                return response()->json([
+                    'message' => "Group {$withHistory->name} still holds {$withHistory->absences_count} attendance records and cannot be deleted. Archiving keeps the group out of the way without losing that history.",
+                ], 422);
+            }
+
+            // A student whose only group is this one would be left dangling,
+            // because students.group_id cannot be null.
+            $stranded = $groups->first(function (Group $group) {
+                return $group->students()
+                    ->whereDoesntHave('groups', fn ($query) => $query->whereKeyNot($group->id))
+                    ->exists();
+            });
+            if ($stranded) {
+                return response()->json([
+                    'message' => "Group {$stranded->name} cannot be deleted because some trainees belong to no other group. Move them to another group first, or delete those trainees.",
+                ], 422);
             }
 
             $deleted = DB::transaction(function () use ($groups) {
                 foreach ($groups as $group) {
                     $group->teachers()->detach();
+
+                    // Re-home each student on one of their remaining groups
+                    // before dropping the membership rows.
+                    foreach ($group->students()->with('groups')->get() as $student) {
+                        $fallback = $student->groups->firstWhere('id', '!=', $group->id);
+                        if ($fallback) {
+                            $student->update(['group_id' => $fallback->id]);
+                        }
+                    }
+
+                    $group->students()->detach();
                     $group->delete();
                 }
+
                 return $groups->count();
             });
 
@@ -146,7 +178,7 @@ class GroupController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $students = $group->students()->with(['user', 'group'])->withAttendanceTotals()->get();
+        $students = $group->students()->with(['user', 'group', 'groups'])->withAttendanceTotals()->get();
         return StudentResource::collection($students);
     }
 

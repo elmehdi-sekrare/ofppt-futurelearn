@@ -117,7 +117,9 @@ const StudentsPage = () => {
     return students.filter((s) => {
       const matchSearch =
         `${s.first_name} ${s.last_name} ${s.email} ${s.cne}`.toLowerCase().includes(search.toLowerCase());
-      const matchGroup = !groupFilter || s.group_name === groupFilter;
+      // Students can belong to several groups, so match any membership.
+      const groups = s.group_names?.length ? s.group_names : [s.group_name];
+      const matchGroup = !groupFilter || groups.includes(groupFilter);
       return matchSearch && matchGroup;
     });
   }, [students, search, groupFilter]);

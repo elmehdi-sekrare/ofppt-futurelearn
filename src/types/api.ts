@@ -46,6 +46,8 @@ export interface Student {
   phone: string;
   group_id: number;
   group_name: string;
+  /** Every group the student belongs to; group_name is the primary one. */
+  group_names?: string[];
   total_absence_hours: number;
   late_count?: number;
 }
@@ -135,6 +137,10 @@ export interface StudentStats {
     status: Absence["status"];
     late_minutes: number;
     group_name: string;
+    subject: string;
+    start_time: string;
+    end_time: string;
+    teacher_name: string;
   }[];
 }
 

@@ -23,7 +23,7 @@ class StudentController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $students = Student::with(['user', 'group'])->withAttendanceTotals()->get();
+        $students = Student::with(['user', 'group', 'groups'])->withAttendanceTotals()->get();
         return StudentResource::collection($students);
     }
 
@@ -48,7 +48,7 @@ class StudentController extends Controller
 
         $student->load(['user', 'group']);
 
-        $records = $student->absences()->with('group')->where('status', '!=', 'voided')->get();
+        $records = $student->absences()->with(['group', 'module', 'teacher.user'])->where('status', '!=', 'voided')->get();
         $absent = $records->where('attendance_status', 'absent');
         $late = $records->where('attendance_status', 'late');
 
@@ -100,6 +100,13 @@ class StudentController extends Controller
                 'status' => $record->status,
                 'late_minutes' => (int) $record->late_minutes,
                 'group_name' => optional($record->group)->name ?? '',
+                // Which session, and which trainer recorded it.
+                'subject' => $record->subject ?: (optional($record->module)->name ?? ''),
+                'start_time' => $record->start_time,
+                'end_time' => $record->end_time,
+                'teacher_name' => $record->teacher && $record->teacher->user
+                    ? $record->teacher->user->first_name . ' ' . $record->teacher->user->last_name
+                    : '',
             ]),
         ]]);
     }

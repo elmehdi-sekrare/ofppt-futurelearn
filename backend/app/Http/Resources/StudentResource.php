@@ -17,10 +17,39 @@ class StudentResource extends JsonResource
             'cne'                  => $this->cne,
             'phone'                => $this->phone ?? '',
             'group_id'             => $this->group_id,
-            'group_name'           => optional($this->group)->name ?? optional($this->groups->first())->name ?? '',
+            // A student can sit in several groups (the group_students pivot is
+            // the source of truth). group_name keeps the primary one for
+            // display; group_names carries all of them so filtering by any
+            // group finds the student.
+            'group_name'           => $this->primaryGroupName(),
+            'group_names'          => $this->allGroupNames(),
             'total_absence_hours'  => $this->absenceHours(),
             'late_count'           => $this->lateCount(),
         ];
+    }
+
+    private function primaryGroupName(): string
+    {
+        $names = $this->allGroupNames();
+        $current = optional($this->group)->name;
+
+        // Prefer the legacy column when it still matches a real membership,
+        // otherwise fall back to the first pivot group.
+        if ($current && in_array($current, $names, true)) {
+            return $current;
+        }
+
+        return $names[0] ?? ($current ?? '');
+    }
+
+    /** @return string[] */
+    private function allGroupNames(): array
+    {
+        if (!$this->resource->relationLoaded('groups')) {
+            return array_values(array_filter([optional($this->group)->name]));
+        }
+
+        return $this->groups->pluck('name')->filter()->unique()->values()->all();
     }
 
     /**
