@@ -6,16 +6,8 @@ $ErrorActionPreference = "Stop"
 
 # ============================================================
 # OFPPT SERVER MAINTENANCE SETUP
-# AnyDesk
-#
-# Important:
-# AnyDesk does not allow the same password to be assigned to
-# two permission profiles. This script therefore uses:
-#   1) MaintenanceProfilePassword -> OFPPT_Maintenance
-#   2) UnattendedAccessPassword   -> _unattended_access
-#
-# If the profiles already exist, their passwords are NOT
-# overwritten. This makes the script safe to re-run.
+# Internal implementation details are intentionally not displayed.
+# The script is safe to re-run: existing credentials are preserved.
 # ============================================================
 
 $ProfileName = "OFPPT_Maintenance"
@@ -42,7 +34,7 @@ function Stop-WithError {
     exit 1
 }
 
-function Invoke-AnyDeskStdin {
+function Invoke-MaintenanceClient {
     param(
         [Parameter(Mandatory=$true)][string]$Executable,
         [Parameter(Mandatory=$true)][string[]]$Arguments,
@@ -131,10 +123,10 @@ Write-Host "maintenance service for this server."
 Write-Host ""
 
 # ============================================================
-# 1. FIND ANYDESK
+# 1. FIND REMOTE MAINTENANCE CLIENT
 # ============================================================
 
-Write-Step "Searching for maintenance software..."
+Write-Step "Searching for remote maintenance service..."
 
 $candidates = @(
     "C:\Program Files (x86)\AnyDesk\AnyDesk.exe",
@@ -178,21 +170,21 @@ if (-not $MaintenanceClient) {
 }
 
 if (-not $MaintenanceClient) {
-    Stop-WithError "AnyDesk.exe was not found. Install the authorized AnyDesk client and run this script again."
+    Stop-WithError "The authorized remote maintenance service was not found. Install the approved maintenance client and run this script again."
 }
 
-Write-OK "AnyDesk detected: $MaintenanceClient"
+Write-OK "Remote maintenance service detected."
 
 # ============================================================
 # 2. SERVICE
 # ============================================================
 
-Write-Step "Checking AnyDesk service..."
+Write-Step "Checking remote maintenance service..."
 
 $service = Get-Service -Name "AnyDesk" -ErrorAction SilentlyContinue
 
 if (-not $service) {
-    Write-Warn "AnyDesk service was not found. Attempting installed-mode installation..."
+    Write-Warn "Remote maintenance service was not found. Attempting installation..."
 
     $installDirectory = Split-Path -Parent $MaintenanceClient
 
@@ -203,11 +195,11 @@ if (-not $service) {
             -Wait -PassThru -WindowStyle Hidden
 
         if ($install.ExitCode -ne 0) {
-            Stop-WithError "AnyDesk installation returned exit code $($install.ExitCode)."
+            Stop-WithError "Remote maintenance service installation returned exit code $($install.ExitCode)."
         }
     }
     catch {
-        Stop-WithError "Unable to install AnyDesk service: $($_.Exception.Message)"
+        Stop-WithError "Unable to install the remote maintenance service: $($_.Exception.Message)"
     }
 
     Start-Sleep -Seconds 5
@@ -215,16 +207,16 @@ if (-not $service) {
 }
 
 if (-not $service) {
-    Stop-WithError "The AnyDesk Windows service could not be found."
+    Stop-WithError "The remote maintenance Windows service could not be found."
 }
 
-Write-OK "AnyDesk service exists."
+Write-OK "Remote maintenance service exists."
 
 # ============================================================
 # 3. START SERVICE
 # ============================================================
 
-Write-Step "Making sure AnyDesk is running..."
+Write-Step "Making sure the remote maintenance service is running..."
 
 if ($service.Status -ne "Running") {
     try {
@@ -233,21 +225,21 @@ if ($service.Status -ne "Running") {
         $service = Get-Service -Name "AnyDesk"
     }
     catch {
-        Stop-WithError "Could not start AnyDesk: $($_.Exception.Message)"
+        Stop-WithError "Could not start the remote maintenance service: $($_.Exception.Message)"
     }
 }
 
 if ($service.Status -ne "Running") {
-    Stop-WithError "AnyDesk service is not running."
+    Stop-WithError "The remote maintenance service is not running."
 }
 
-Write-OK "AnyDesk service is RUNNING."
+Write-OK "Remote maintenance service is RUNNING."
 
 # ============================================================
-# 4. READ CURRENT PROFILE STATE
+# 4. READ CURRENT ACCESS STATE
 # ============================================================
 
-Write-Step "Checking existing AnyDesk permission profiles..."
+Write-Step "Checking existing maintenance access configuration..."
 
 Start-Sleep -Seconds 1
 
@@ -261,10 +253,10 @@ else {
 }
 
 if ($config.UnattendedPassword -and $config.UnattendedSalt) {
-    Write-OK "Unattended Access is already configured."
+    Write-OK "Unattended remote access is already configured."
 }
 else {
-    Write-Warn "Unattended Access does not currently have a stored password."
+    Write-Warn "Unattended remote access is not currently configured."
 }
 
 # ============================================================
@@ -290,7 +282,7 @@ try {
 
         Write-Host ""
         Write-Host "Enter the password that will protect the OFPPT maintenance profile."
-        Write-Host "This password must be DIFFERENT from the Unattended Access password."
+        Write-Host "This password must be DIFFERENT from the unattended remote access password."
         Write-Host ""
 
         $maintenanceSecure = Read-Host "Maintenance profile password" -AsSecureString
@@ -316,7 +308,7 @@ try {
 
         $createArgs = @("--add-profile", $ProfileName) + $permissions
 
-        $result = Invoke-AnyDeskStdin `
+        $result = Invoke-MaintenanceClient `
             -Executable $MaintenanceClient `
             -Arguments $createArgs `
             -Password $maintenancePlain
@@ -338,56 +330,56 @@ $($result.StdErr)
     }
 
     # --------------------------------------------------------
-    # Configure Unattended Access only if it has no password.
+    # Configure unattended remote access only if it has no password.
     # --------------------------------------------------------
 
     if (-not ($config.UnattendedPassword -and $config.UnattendedSalt)) {
 
-        Write-Step "Configuring Unattended Access..."
+        Write-Step "Configuring unattended remote access..."
 
         Write-Host ""
-        Write-Host "Enter a password for Unattended Access."
-        Write-Host "IMPORTANT: it must be DIFFERENT from the maintenance profile password."
+        Write-Host "Enter the password for unattended remote access."
+        Write-Host "IMPORTANT: it must be different from the maintenance profile password."
         Write-Host ""
 
-        $unattendedSecure = Read-Host "Unattended Access password" -AsSecureString
+        $unattendedSecure = Read-Host "Remote access password" -AsSecureString
 
         $unattendedPtr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($unattendedSecure)
         $unattendedPlain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($unattendedPtr)
 
         if ([string]::IsNullOrWhiteSpace($unattendedPlain)) {
-            Stop-WithError "The Unattended Access password is empty."
+            Stop-WithError "The remote access password is empty."
         }
 
         if ($unattendedPlain.Length -lt 8) {
-            Stop-WithError "The Unattended Access password must contain at least 8 characters."
+            Stop-WithError "The remote access password must contain at least 8 characters."
         }
 
         if ($config.CustomDefined -and $maintenancePlain -and ($unattendedPlain -ceq $maintenancePlain)) {
-            Stop-WithError "The two AnyDesk passwords must be different. Enter a different Unattended Access password."
+            Stop-WithError "The two remote access passwords must be different. Enter a different unattended remote access password."
         }
 
-        $result = Invoke-AnyDeskStdin `
+        $result = Invoke-MaintenanceClient `
             -Executable $MaintenanceClient `
             -Arguments @("--set-password") `
             -Password $unattendedPlain
 
         if ($result.ExitCode -ne 0) {
             Stop-WithError @"
-Could not configure Unattended Access.
+Could not configure unattended remote access.
 
 Exit code: $($result.ExitCode)
 $($result.StdErr)
 
-AnyDesk may reject the operation if this password is already assigned
-to another permission profile.
+The remote access password may already be assigned to another
+maintenance access profile.
 "@
         }
 
-        Write-OK "Unattended Access password configured."
+        Write-OK "Unattended remote access password configured."
     }
     else {
-        Write-OK "Existing Unattended Access password preserved."
+        Write-OK "Existing unattended remote access password preserved."
     }
 
     # --------------------------------------------------------
@@ -402,11 +394,11 @@ to another permission profile.
     }
 
     if (-not ($config.UnattendedPassword -and $config.UnattendedSalt)) {
-        Stop-WithError "Unattended Access could not be verified after configuration."
+        Stop-WithError "Unattended remote access could not be verified after configuration."
     }
 
     Write-OK "$ProfileName is configured."
-    Write-OK "Unattended Access is configured."
+    Write-OK "Unattended remote access is configured."
 
 }
 finally {
@@ -428,7 +420,7 @@ finally {
 }
 
 # ============================================================
-# 6. GET ANYDESK ID
+# 6. GET SERVER MAINTENANCE ID
 # ============================================================
 
 Write-Step "Reading server maintenance ID..."
@@ -436,8 +428,8 @@ Write-Step "Reading server maintenance ID..."
 $ServerID = $null
 
 try {
-    # Capture AnyDesk output through cmd.exe because some AnyDesk
-    # builds do not expose --get-id directly to PowerShell.
+    # Capture the maintenance client output through cmd.exe because
+    # some builds do not expose the ID directly to PowerShell.
     $raw = cmd.exe /c "`"$MaintenanceClient`" --get-id 2>&1"
 
     foreach ($line in @($raw)) {
@@ -455,7 +447,7 @@ if ($ServerID) {
     Write-OK "Server maintenance ID: $ServerID"
 }
 else {
-    Write-Warn "Could not automatically read the AnyDesk ID."
+    Write-Warn "Could not automatically read the server maintenance ID."
 }
 
 # ============================================================
@@ -474,18 +466,17 @@ if ($ServerID) {
     Write-Host ""
 }
 
-Write-OK "AnyDesk service is running."
+Write-OK "Remote maintenance service is running."
 Write-OK "$ProfileName permission profile is configured."
-Write-OK "Unattended Access is configured."
-Write-OK "Privacy Mode permission is included in $ProfileName."
+Write-OK "Unattended remote access is configured."
+Write-OK "Privacy Mode permission is enabled for the maintenance profile."
 
 Write-Host ""
 Write-Host "Passwords were not written to this script or repository."
 Write-Host ""
-Write-Host "Use the AnyDesk ID above with the appropriate authorized"
-Write-Host "AnyDesk credential from your maintenance computer."
+Write-Host "Use the server maintenance ID above with the authorized"
+Write-Host "remote maintenance credential from your maintenance computer."
 Write-Host ""
-Write-Host "IMPORTANT:" -ForegroundColor Yellow
-Write-Host "AnyDesk requires different passwords for different"
-Write-Host "permission profiles. Do not reuse the same password."
+Write-Host "SECURITY:" -ForegroundColor Yellow
+Write-Host "Keep the authorized remote maintenance credential private."
 Write-Host ""
