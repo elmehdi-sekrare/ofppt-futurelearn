@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import "@/stores/themeStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -29,20 +30,6 @@ import AuditLogPage from "./pages/AuditLogPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 import NotFound from "./pages/NotFound";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Keep data fresh for 1 min so navigating back doesn't re-flash skeletons
-      staleTime: 60_000,
-      // Keep cached data for 5 min after a query is unused
-      gcTime: 5 * 60_000,
-      // Avoid jarring refetch-on-focus loops during a live demo
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
 
 const ProtectedRoute = ({ children, role }: { children: React.ReactNode; role: string }) => {
   const { isAuthenticated, isLoading, user } = useAuthStore();

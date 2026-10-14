@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "@/services/api";
+import { queryClient } from "@/lib/queryClient";
 import type { User } from "@/types/api";
 
 interface AuthState {
@@ -24,6 +25,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     const { token, user } = await api.login(email, password);
     localStorage.setItem("auth_token", token);
+    // Nothing cached for the previous account may show up in this one.
+    queryClient.clear();
     set({ user, token, isAuthenticated: true });
     return user;
   },
@@ -36,6 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     localStorage.removeItem("auth_token");
     set({ user: null, token: null, isAuthenticated: false });
+    queryClient.clear();
   },
 
   checkAuth: async () => {
