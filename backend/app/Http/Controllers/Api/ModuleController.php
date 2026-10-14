@@ -17,7 +17,7 @@ class ModuleController extends Controller
     public function store(Request $request)
     {
         if ($request->user()->role !== 'teacher' || !$request->user()->teacher) return response()->json(['message' => 'Forbidden'], 403);
-        $data = $request->validate(['name' => 'required|string|max:100']);
+        $data = $request->validate(['name' => 'required|string|max:191']);
         $module = $request->user()->teacher->modules()->create(['name' => trim($data['name'])]);
         return response()->json(['data' => $module], 201);
     }
@@ -25,7 +25,7 @@ class ModuleController extends Controller
     public function update(Request $request, Module $module)
     {
         if (!$this->owns($request, $module)) return response()->json(['message' => 'Forbidden'], 403);
-        $data = $request->validate(['name' => 'required|string|max:100']);
+        $data = $request->validate(['name' => 'required|string|max:191']);
         $module->update(['name' => trim($data['name'])]);
         return response()->json(['data' => $module]);
     }

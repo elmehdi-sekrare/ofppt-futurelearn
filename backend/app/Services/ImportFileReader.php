@@ -103,9 +103,9 @@ class ImportFileReader
             $key = mb_strtolower($name);
             $status = 'new';
             $message = null;
-            if (mb_strlen($name) > 100) {
+            if (mb_strlen($name) > 191) {
                 $status = 'invalid';
-                $message = 'Module names may not exceed 100 characters.';
+                $message = 'Module names may not exceed 191 characters.';
             } elseif (isset($seen[$key])) {
                 $status = 'duplicate';
                 $message = 'This module appears more than once in the file.';

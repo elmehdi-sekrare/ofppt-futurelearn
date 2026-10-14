@@ -2,9 +2,10 @@ import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Edit2, Trash2, X, Users, Filter } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, X, Users, Filter, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import SearchField from "@/components/SearchField";
+import TeacherImportDialog from "@/components/TeacherImportDialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +24,8 @@ const TeachersPage = () => {
   const [editing, setEditing] = useState<Teacher | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [groupQuery, setGroupQuery] = useState("");
   const { toast } = useToast();
   const { showSuccess, NotificationComponent } = useSuccessNotification();
 
@@ -94,6 +97,7 @@ const TeachersPage = () => {
   }, [teachers, search, subjectFilter]);
 
   const openAdd = () => {
+    setGroupQuery("");
     setEditing(null);
     setForm({ firstName: "", lastName: "", phone: "" });
     setGroupIds([]);
@@ -101,6 +105,7 @@ const TeachersPage = () => {
   };
 
   const openEdit = (t: Teacher) => {
+    setGroupQuery("");
     setEditing(t);
     setForm({ firstName: t.first_name, lastName: t.last_name, phone: t.phone || "" });
     setGroupIds(t.group_ids ?? groups.filter((group) => t.groups_assigned.includes(group.name)).map((group) => group.id));
@@ -136,10 +141,16 @@ const TeachersPage = () => {
           <span className="brand-rule" />
           <p className="text-muted-foreground mt-4">{tr("teachers.registeredCount", { count: teachers.length })}</p>
         </div>
-        <Button onClick={openAdd} className="btn-glow text-primary-foreground border-0 gap-2">
-          <Plus className="w-4 h-4" /> {tr("teachers.add")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <FileSpreadsheet className="w-4 h-4 text-success" /> {tr("teacherImport.button")}
+          </Button>
+          <Button onClick={openAdd} className="btn-glow text-primary-foreground border-0 gap-2">
+            <Plus className="w-4 h-4" /> {tr("teachers.add")}
+          </Button>
+        </div>
       </motion.div>
+      <TeacherImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchField value={search} onChange={setSearch} placeholder={tr("teachers.search")} className="flex-1 basis-[22rem]" />
@@ -179,8 +190,16 @@ const TeachersPage = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell">
-                      {(t.subjects ?? []).length > 0 ? t.subjects?.join(", ") : tr("teachers.noSubjects")}
+                    <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell max-w-[22rem]">
+                      {(t.subjects ?? []).length > 0 ? (
+                        // Imported trainers can teach 15+ modules; show two and the full list on hover.
+                        <span title={(t.subjects ?? []).join("\n")} className="block">
+                          <span className="line-clamp-2">{(t.subjects ?? []).slice(0, 2).join(" · ")}</span>
+                          {(t.subjects ?? []).length > 2 && (
+                            <span className="text-xs font-semibold text-primary">{tr("teachers.moreSubjects", { count: (t.subjects ?? []).length - 2 })}</span>
+                          )}
+                        </span>
+                      ) : tr("teachers.noSubjects")}
                     </td>
                     <td className="py-3 px-4 text-muted-foreground hidden md:table-cell">{t.email}</td>
                     <td className="py-3 px-4 hidden lg:table-cell">
@@ -199,8 +218,8 @@ const TeachersPage = () => {
                         </div>
                       ) : (
                         <div className="flex items-center gap-1 justify-end">
-                          <button onClick={() => openEdit(t)} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => openEdit(t)} title={tr("app.edit")} aria-label={tr("app.edit")} className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setDeleteConfirm(t.id)} title={tr("app.delete")} aria-label={tr("app.delete")} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       )}
                     </td>
@@ -243,15 +262,28 @@ const TeachersPage = () => {
                     <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-glass" />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-medium">{tr("teachers.assignedGroups")}</label>
-                    <p className="text-xs text-muted-foreground">Choose the active groups this teacher can access. Subjects are managed by the teacher through My Modules.</p>
-                    <div className="max-h-32 overflow-y-auto rounded-lg border border-border/60 p-2 space-y-1">
-                      {groups.length === 0 ? <p className="text-xs text-muted-foreground p-2">Create groups first.</p> : groups.map((group) => (
-                        <label key={group.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-secondary/50">
-                          <input type="checkbox" checked={groupIds.includes(group.id)} onChange={(event) => setGroupIds((current) => event.target.checked ? [...current, group.id] : current.filter((id) => id !== group.id))} />
-                          <span>{group.name}</span><span className="text-xs text-muted-foreground">({group.student_count})</span>
-                        </label>
-                      ))}
+                    <div className="flex items-baseline justify-between gap-3">
+                      <label className="text-sm font-medium">{tr("teachers.assignedGroups")}</label>
+                      <span className="text-xs text-muted-foreground tabular-nums">{tr("teachers.selectedGroups", { count: groupIds.length })}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{tr("teachers.assignedHintFull")}</p>
+                    {groups.length > 8 && (
+                      <Input value={groupQuery} onChange={(e) => setGroupQuery(e.target.value)} placeholder={tr("teachers.filterGroups")} aria-label={tr("teachers.filterGroups")} className="input-glass h-9" />
+                    )}
+                    <div className="max-h-56 overflow-y-auto rounded-lg border border-border/60 p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                      {groups.length === 0 ? <p className="text-xs text-muted-foreground p-2">{tr("teachers.needGroups")}</p> : (() => {
+                        // Assigned groups first, so a long list never hides what is already ticked.
+                        const visible = groups
+                          .filter((group) => group.name.toLowerCase().includes(groupQuery.trim().toLowerCase()))
+                          .sort((a, b) => Number(groupIds.includes(b.id)) - Number(groupIds.includes(a.id)) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+                        if (visible.length === 0) return <p className="text-xs text-muted-foreground p-2 sm:col-span-2">{tr("teachers.noGroupMatch")}</p>;
+                        return visible.map((group) => (
+                          <label key={group.id} className={`flex items-center gap-2 text-sm p-1.5 rounded cursor-pointer hover:bg-secondary/50 ${groupIds.includes(group.id) ? "bg-primary/[0.06]" : ""}`}>
+                            <input type="checkbox" className="accent-primary" checked={groupIds.includes(group.id)} onChange={(event) => setGroupIds((current) => event.target.checked ? [...current, group.id] : current.filter((id) => id !== group.id))} />
+                            <span className="font-medium">{group.name}</span><span className="text-xs text-muted-foreground">({group.student_count})</span>
+                          </label>
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>

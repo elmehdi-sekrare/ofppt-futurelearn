@@ -201,6 +201,113 @@ export interface DashboardInsights {
   cohort: { sessions: number; absent_hours: number; absence_rate: number };
 }
 
+// ── Trainer import (assignment workbook) ─────────────────────────────
+export interface TeacherImportTrainer {
+  index: number;
+  /** The name exactly as written in the workbook. */
+  source_name: string;
+  first_name: string;
+  last_name: string;
+  /** The first/last split was a guess and is worth a second look. */
+  name_check: boolean;
+  status: "new" | "existing";
+  existing_teacher_id: number | null;
+  existing_email: string | null;
+  modules: { name: string; code: string | null }[];
+  groups: string[];
+  rows: number;
+}
+
+export interface TeacherImportGroup {
+  name: string;
+  degree: string | null;
+  study_year: string | null;
+  filiere: string | null;
+  trainer_count: number;
+  status: "new" | "existing" | "archived";
+  existing_group_id: number | null;
+}
+
+export interface TeacherImportPreview {
+  batch_id: number;
+  expires_at: string;
+  sheet: string;
+  academic_year: string;
+  rows: number;
+  skipped: { unassigned: number; missing_group: number; missing_module: number };
+  trainers: TeacherImportTrainer[];
+  groups: TeacherImportGroup[];
+}
+
+export interface TeacherImportResult {
+  created: number;
+  linked: number;
+  skipped: number;
+  groups_created: number;
+  groups_reused: number;
+  groups_archived: string[];
+  modules_created: number;
+  group_links: number;
+  credentials: { name: string; email: string; temporary_password: string }[];
+}
+
+// ── Student list import (institution export, groups mixed) ──────────
+export interface StudentListImportStudent {
+  index: number;
+  source_row: number;
+  first_name: string;
+  last_name: string;
+  cin: string;
+  matricule: string;
+  /** Identifier stored for the student: the CIN, or the matricule when there is none. */
+  cne: string;
+  /** Key of the student's group in `groups`. */
+  group: string;
+  /** "existing" joins the group from the file; "unchanged" is already in it. */
+  status: "new" | "existing" | "unchanged";
+  existing_student_id: number | null;
+  current_groups: string[];
+}
+
+export interface StudentListImportGroup {
+  key: string;
+  name: string;
+  degree: string | null;
+  study_year: string | null;
+  academic_year: string | null;
+  filiere: string | null;
+  student_count: number;
+  new_students: number;
+  existing_students: number;
+  unchanged_students: number;
+  status: "new" | "existing" | "archived";
+  existing_group_id: number | null;
+}
+
+export type StudentListSkipReason = "inactive" | "missing_group" | "invalid_group" | "missing_name" | "missing_identifier" | "duplicate";
+
+export interface StudentListImportPreview {
+  batch_id: number;
+  expires_at: string;
+  sheet: string;
+  academic_year: string;
+  rows: number;
+  students: StudentListImportStudent[];
+  groups: StudentListImportGroup[];
+  skipped: { source_row: number; name: string; group: string; reason: StudentListSkipReason }[];
+}
+
+export interface StudentListImportResult {
+  students_created: number;
+  students_added: number;
+  students_unchanged: number;
+  skipped: number;
+  groups_created: number;
+  groups_reused: number;
+  groups_archived: string[];
+  credentials: { name: string; group: string; email: string; temporary_password: string }[];
+}
+
 export interface Absence {
   id: number;
   student_id: number;

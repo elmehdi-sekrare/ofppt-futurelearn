@@ -15,6 +15,12 @@ use Illuminate\Support\Facades\Mail;
 
 class TeacherController extends Controller
 {
+    /**
+     * Temporary password for new trainer accounts, used by the manual form and
+     * the Excel import alike. must_change_password forces a new one at first login.
+     */
+    public const DEFAULT_PASSWORD = 'password123';
+
     /** GET /api/teachers */
     public function index()
     {
@@ -43,7 +49,7 @@ class TeacherController extends Controller
 
         return DB::transaction(function () use ($data) {
             $email = $this->generateSchoolEmail($data['first_name'], $data['last_name']);
-            $defaultPassword = 'password123';
+            $defaultPassword = self::DEFAULT_PASSWORD;
 
             $user = User::create([
                 'first_name' => $data['first_name'],

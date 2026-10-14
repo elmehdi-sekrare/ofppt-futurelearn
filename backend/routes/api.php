@@ -52,6 +52,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/groups/{group}/students', [GroupController::class, 'students']);
     Route::post('/groups/{group}/student-imports/preview', [ImportController::class, 'previewStudents']);
     Route::post('/student-imports/{batch}/commit', [ImportController::class, 'commitStudents']);
+    Route::post('/teacher-imports/preview', [ImportController::class, 'previewTeachers']);
+    Route::post('/teacher-imports/{batch}/commit', [ImportController::class, 'commitTeachers']);
+    Route::post('/student-list-imports/preview', [ImportController::class, 'previewStudentList']);
+    Route::post('/student-list-imports/{batch}/commit', [ImportController::class, 'commitStudentList']);
 
     // Teacher modules and module imports
     Route::apiResource('modules', ModuleController::class)->only(['index', 'store', 'update', 'destroy']);

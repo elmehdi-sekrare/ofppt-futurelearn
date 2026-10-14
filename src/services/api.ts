@@ -22,6 +22,10 @@ import type {
   StudentStats,
   HeatmapData,
   DashboardInsights,
+  TeacherImportPreview,
+  TeacherImportResult,
+  StudentListImportPreview,
+  StudentListImportResult,
 } from "@/types/api";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
@@ -249,6 +253,26 @@ export const api = {
 
   commitStudentImport(batchId: number, rows: { index: number; action: "import" | "update" | "skip"; first_name?: string; last_name?: string }[]) {
     return request<ApiResponse<{ created: number; updated: number; skipped: number; credentials: { first_name: string; last_name: string; cne: string; email: string; temporary_password: string }[] }>>(`/student-imports/${batchId}/commit`, { method: "POST", body: JSON.stringify({ rows }) });
+  },
+
+  previewTeacherImport(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<ApiResponse<TeacherImportPreview>>("/teacher-imports/preview", { method: "POST", body: formData });
+  },
+
+  commitTeacherImport(batchId: number, trainers: { index: number; action: "import" | "skip"; first_name?: string; last_name?: string }[]) {
+    return request<ApiResponse<TeacherImportResult>>(`/teacher-imports/${batchId}/commit`, { method: "POST", body: JSON.stringify({ trainers }) });
+  },
+
+  previewStudentListImport(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<ApiResponse<StudentListImportPreview>>("/student-list-imports/preview", { method: "POST", body: formData });
+  },
+
+  commitStudentListImport(batchId: number, excludeGroups: string[]) {
+    return request<ApiResponse<StudentListImportResult>>(`/student-list-imports/${batchId}/commit`, { method: "POST", body: JSON.stringify({ exclude_groups: excludeGroups }) });
   },
 
   previewModuleImport(file: File) {

@@ -37,6 +37,28 @@ class SchoolEmail
         return $email;
     }
 
+    /**
+     * Same addresses as generate(), checked against an in-memory set of taken
+     * addresses (email => true) instead of a query per attempt, for imports
+     * that create hundreds of accounts. The new address is added to the set.
+     */
+    public static function generateAvoiding(string $firstName, string $lastName, array &$taken): string
+    {
+        $local = trim(self::slug($firstName) . '.' . self::slug($lastName), '.');
+
+        if ($local === '') {
+            do {
+                $email = 'f' . random_int(10000, 99999) . '@' . self::DOMAIN;
+            } while (isset($taken[$email]));
+        } else {
+            $email = $local . '@' . self::DOMAIN;
+            for ($suffix = 2; isset($taken[$email]); $suffix++) $email = $local . $suffix . '@' . self::DOMAIN;
+        }
+
+        $taken[$email] = true;
+        return $email;
+    }
+
     /** Lowercase, accent-free, letters and digits only (Zineb El-Amrani -> zinebelamrani). */
     private static function slug(string $value): string
     {

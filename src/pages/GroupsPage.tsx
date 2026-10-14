@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Edit2, Trash2, X, BookOpen, GraduationCap, FileUp, Archive, AlertTriangle, CalendarClock, ChevronDown } from "lucide-react";
+import { Plus, Edit2, Trash2, X, BookOpen, GraduationCap, FileUp, FileSpreadsheet, Archive, AlertTriangle, CalendarClock, ChevronDown } from "lucide-react";
 import { getDateLocale } from "@/i18n/i18n";
 import { Input } from "@/components/ui/input";
 import SearchField from "@/components/SearchField";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSuccessNotification } from "@/components/SuccessNotification";
 import { StyledSelect } from "@/components/ui/styled-select";
 import GroupRosterImport, { type GroupRosterImportHandle } from "@/components/GroupRosterImport";
+import StudentListImportDialog from "@/components/StudentListImportDialog";
 import type { Group, Student } from "@/types/api";
 
 const degreeOptions = ["Spécialisation", "Qualification", "Technicien", "Technicien Spécialisé"];
@@ -44,6 +45,7 @@ const GroupsPage = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [expandedGroup, setExpandedGroup] = useState<number | null>(null);
   const [importGroup, setImportGroup] = useState<Group | null>(null);
+  const [listImportOpen, setListImportOpen] = useState(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const rosterRef = useRef<GroupRosterImportHandle>(null);
   const { toast } = useToast();
@@ -214,11 +216,16 @@ const GroupsPage = () => {
             <Button variant="outline" onClick={() => runGroupAction("restore")} disabled={bulkStatusMutation.isPending}>{t("groups.restoreN", { count: selectedIds.length })}</Button>
             <Button variant="destructive" onClick={() => runGroupAction("delete")} disabled={bulkStatusMutation.isPending}>{t("groups.deletePermanently")}</Button>
           </>}
+          <Button variant="outline" onClick={() => setListImportOpen(true)} className="gap-2">
+            <FileSpreadsheet className="w-4 h-4 text-success" /> {t("studentListImport.button")}
+          </Button>
           <Button onClick={openAdd} className="btn-glow text-primary-foreground border-0 gap-2">
             <Plus className="w-4 h-4" /> {t("groups.add")}
           </Button>
         </div>
       </motion.header>
+
+      <StudentListImportDialog open={listImportOpen} onClose={() => setListImportOpen(false)} />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchField value={search} onChange={setSearch} placeholder={t("groups.search")} className="flex-1 basis-[22rem]" />
