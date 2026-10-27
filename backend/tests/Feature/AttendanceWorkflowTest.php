@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Absence;
+use App\Models\AuditLog;
 use App\Models\Group;
 use App\Models\Justification;
 use App\Models\Module;
@@ -67,7 +68,9 @@ class AttendanceWorkflowTest extends TestCase
             ])->assertCreated();
         }
 
-        $this->assertDatabaseHas('notifications', ['user_id' => $admin->id, 'title' => 'Attendance risk alert']);
+        // Raised once in the audit log; admins no longer get notifications.
+        $this->assertSame(1, AuditLog::where('event', 'attendance.risk_alert')->where('subject_id', $student->id)->count());
+        $this->assertDatabaseMissing('notifications', ['user_id' => $admin->id]);
         Sanctum::actingAs($admin);
         $this->getJson('/api/dashboard/risk')->assertOk()->assertJsonPath('data.0.risk_level', 'high');
     }

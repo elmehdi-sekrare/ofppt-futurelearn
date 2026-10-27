@@ -162,7 +162,9 @@ const DashboardLayout = ({ children, role }: Props) => {
     <div className="flex h-screen bg-background overflow-hidden">
       <a href="#main-content" className="skip-link">{t("layout.skipToContent")}</a>
       <Sidebar />
-      <NotificationPopup />
+      {/* Only students get notifications: for admins and trainers they piled up
+          by the thousand (one per absence) and slowed the whole app down. */}
+      {role === "student" && <NotificationPopup />}
       <GlobalSearch />
       <KeyboardShortcuts />
       <QuickActions role={role} />
@@ -207,7 +209,7 @@ const DashboardLayout = ({ children, role }: Props) => {
           <div className="ml-auto flex items-center gap-1.5">
             <LanguageSwitcher />
             <ThemeToggle />
-            <NotificationPanel />
+            <NotificationPanel enabled={role === "student"} />
             <span className="hidden sm:block w-px h-7 bg-border mx-2" aria-hidden="true" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

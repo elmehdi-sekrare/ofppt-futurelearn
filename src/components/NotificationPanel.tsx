@@ -11,7 +11,8 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   error: { icon: <XCircle className="w-4 h-4" />, color: "text-destructive bg-destructive/10" },
 };
 
-const NotificationPanel = () => {
+/** With `enabled` false the bell is shown alone: nothing is loaded or listed. */
+const NotificationPanel = ({ enabled = true }: { enabled?: boolean }) => {
   const [open, setOpen] = useState(false);
   const { notifications, fetchNotifications, markAsRead, markAllRead, clearAll, unreadCount } = useNotificationStore();
   const count = unreadCount();
@@ -37,6 +38,14 @@ const NotificationPanel = () => {
     if (hrs < 24) return `${hrs}h ago`;
     return `${Math.floor(hrs / 24)}d ago`;
   };
+
+  if (!enabled) {
+    return (
+      <span className="p-2 text-muted-foreground" aria-hidden="true">
+        <Bell className="w-5 h-5" />
+      </span>
+    );
+  }
 
   const dropdown = (
     <AnimatePresence>

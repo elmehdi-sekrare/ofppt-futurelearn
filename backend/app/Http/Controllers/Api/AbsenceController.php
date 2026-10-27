@@ -255,7 +255,7 @@ class AbsenceController extends Controller
                     'message' => $teacherName . ' recorded you ' . $absence->late_minutes . ' minutes late for ' . $absence->subject . ' on ' . $absence->date . '.',
                     'type' => 'warning',
                 ]);
-                AttendanceRiskService::notifyAdminsIfTriggered($absence->student, $user);
+                AttendanceRiskService::logRiskAlertIfTriggered($absence->student, $user);
                 continue;
             }
 
@@ -267,15 +267,6 @@ class AbsenceController extends Controller
                     'type' => 'info',
                 ]);
                 continue;
-            }
-
-            foreach ($adminUsers as $admin) {
-                Notification::create([
-                    'user_id' => $admin->id,
-                    'title' => 'New Absence Recorded',
-                    'message' => $teacherName . ' marked ' . $studentName . ' absent for ' . $absence->subject . '.',
-                    'type' => 'warning',
-                ]);
             }
 
             Notification::create([
@@ -330,7 +321,7 @@ class AbsenceController extends Controller
                 \Log::warning('Failed to send threshold alert: ' . $e->getMessage());
             }
 
-            AttendanceRiskService::notifyAdminsIfTriggered($absence->student, $user);
+            AttendanceRiskService::logRiskAlertIfTriggered($absence->student, $user);
         }
 
         return AbsenceResource::collection($absences)->response()->setStatusCode(201);

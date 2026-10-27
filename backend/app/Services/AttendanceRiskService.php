@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Notification;
+use App\Models\AuditLog;
 use App\Models\Student;
 use App\Models\User;
 
@@ -92,24 +92,26 @@ class AttendanceRiskService
         ];
     }
 
-    public static function notifyAdminsIfTriggered(Student $student, ?User $actor = null): void
+    /**
+     * Records a risk alert in the audit log the first time a student crosses
+     * a threshold. Admins follow these on the risk page and in the audit log;
+     * they are no longer sent as notifications, which piled up by the
+     * thousand and slowed the admin account down.
+     */
+    public static function logRiskAlertIfTriggered(Student $student, ?User $actor = null): void
     {
         $summary = self::summary($student);
         $triggers = array_filter($summary['factors'], fn (string $factor) => str_starts_with($factor, '10+') || str_starts_with($factor, '3+'));
         foreach ($triggers as $trigger) {
-            $message = $summary['student_name'] . ' (' . $student->cne . '): ' . $trigger . '.';
-            $alreadyNotified = Notification::where('title', 'Attendance risk alert')->where('message', $message)->exists();
-            if ($alreadyNotified) continue;
+            $description = 'Risk alert raised for ' . $summary['student_name'] . ': ' . $trigger;
+            $alreadyRaised = AuditLog::where('event', 'attendance.risk_alert')
+                ->where('subject_type', Student::class)
+                ->where('subject_id', $student->id)
+                ->where('description', $description)
+                ->exists();
+            if ($alreadyRaised) continue;
 
-            foreach (User::where('role', 'admin')->get() as $admin) {
-                Notification::create([
-                    'user_id' => $admin->id,
-                    'title' => 'Attendance risk alert',
-                    'message' => $message,
-                    'type' => 'warning',
-                ]);
-            }
-            AuditLogger::record($actor, 'attendance.risk_alert', 'Risk alert raised for ' . $summary['student_name'] . ': ' . $trigger, $student, $summary);
+            AuditLogger::record($actor, 'attendance.risk_alert', $description, $student, $summary);
         }
     }
 
